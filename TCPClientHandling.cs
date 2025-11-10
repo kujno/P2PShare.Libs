@@ -2,7 +2,7 @@
 
 namespace P2PShare.Libs
 {
-    class ClientHandling
+    class TCPClientHandling
     {
         public static NetworkStream[] GetStreamsFromTcpClients(TcpClient[] clients)
         {

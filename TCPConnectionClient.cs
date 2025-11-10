@@ -4,7 +4,7 @@ using System.Net.Sockets;
 
 namespace P2PShare.Libs
 {
-    public class ConnectionClient
+    public class TCPConnectionClient
     {
         public static event EventHandler<TcpClient>? Connected;
         public static event EventHandler? Disconnected;

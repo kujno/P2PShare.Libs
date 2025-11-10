@@ -4,7 +4,7 @@ using System.Net.Sockets;
 
 namespace P2PShare.Libs
 {
-    public class ConnectionListener
+    public class TCPConnectionListener
     {
         public static async Task<TcpClient?> WaitForConnection(int port, NetworkInterface @interface, Cancellation cancellation)
         {
@@ -40,12 +40,12 @@ namespace P2PShare.Libs
 
                 if (client is null) continue;
 
-                ConnectionClient.OnConnected(client);
+                TCPConnectionClient.OnConnected(client);
 
                 return;
             }
 
-            ConnectionClient.OnDisconnected();
+            TCPConnectionClient.OnDisconnected();
         }
 
         public static void GetRidOfListener(ref TcpListener listener)

@@ -44,7 +44,7 @@ namespace P2PShare.Libs
 
             try
             {
-                streams = ClientHandling.GetStreamsFromTcpClients(clients);
+                streams = TCPClientHandling.GetStreamsFromTcpClients(clients);
 
                 await streams[1].WriteAsync(inviteBytes, 0, inviteBytes.Length);
 
@@ -109,7 +109,7 @@ namespace P2PShare.Libs
 
         public static async Task ReceiveInvite(TcpClient?[] clients)
         {
-            if (!ConnectionClient.AreClientsConnected(clients)) return;
+            if (!TCPConnectionClient.AreClientsConnected(clients)) return;
 
             NetworkStream[] streams;
             byte[] buffer = new byte[1024];
@@ -117,7 +117,7 @@ namespace P2PShare.Libs
 
             try
             {
-                streams = ClientHandling.GetStreamsFromTcpClients(clients!);
+                streams = TCPClientHandling.GetStreamsFromTcpClients(clients!);
 
                 bytesRead = await streams[1].ReadAtLeastAsync(buffer, 1);
 

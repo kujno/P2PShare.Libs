@@ -34,7 +34,7 @@ namespace P2PShare.Libs
             {
                 listener = new TcpListener(ip, port);
 
-                ConnectionListener.StartTestOfListener(listener);
+                TCPConnectionListener.StartTestOfListener(listener);
 
                 return true;
             }
@@ -44,7 +44,7 @@ namespace P2PShare.Libs
             }
             finally
             {
-                if (listener is not null) ConnectionListener.GetRidOfListener(ref listener);
+                if (listener is not null) TCPConnectionListener.GetRidOfListener(ref listener);
             }
         }
     }
