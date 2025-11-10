@@ -109,7 +109,7 @@ namespace P2PShare.Libs
 
         public static async Task ReceiveInvite(TcpClient?[] clients)
         {
-            if (!TCPConnectionClient.AreClientsConnected(clients)) return;
+            if (!TCPClient.AreClientsConnected(clients)) return;
 
             NetworkStream[] streams;
             byte[] buffer = new byte[1024];

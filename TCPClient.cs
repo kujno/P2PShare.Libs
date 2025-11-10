@@ -4,21 +4,19 @@ using System.Net.Sockets;
 
 namespace P2PShare.Libs
 {
-    public class TCPConnectionClient
+    public class TCPClient : TCPConnection
     {
         public static event EventHandler<TcpClient>? Connected;
         public static event EventHandler? Disconnected;
 
-        public static async Task Connect(IPAddress ip, NetworkInterface @interface, int port, Cancellation cancellation)
+        public static async Task Connect(IPAddress ip, NetworkInterface @interface, Cancellation cancellation)
         {
             IPAddress? ipLocal = IPHandling.GetLocalIPv4(@interface);
-            TcpClient client = new();
+            TcpClient client;
             ValueTask connecting;
 
             if (ipLocal is null || cancellation.TokenSource is null)
             {
-                client.Dispose();
-
                 OnDisconnected();
 
                 return;
@@ -26,21 +24,25 @@ namespace P2PShare.Libs
 
             try
             {
-                client.Client.Bind(new IPEndPoint(ipLocal, port));
-
-                do
+                for (int i = 0; i < 2; i++)
                 {
-                    try
-                    {
-                        connecting = client.ConnectAsync(ip, port, cancellation.TokenSource.Token);
+                    client = new();
+                    client.Client.Bind(new IPEndPoint(ipLocal, initialPort));
 
-                        await connecting;
-                    }
-                    catch
+                    do
                     {
+                        try
+                        {
+                            connecting = client.ConnectAsync(ip, port, cancellation.TokenSource.Token);
+
+                            await connecting;
+                        }
+                        catch
+                        {
+                        }
                     }
+                    while (!client.Connected && cancellation.TokenSource is not null);
                 }
-                while (!client.Connected && cancellation.TokenSource is not null);
             }
             catch
             {

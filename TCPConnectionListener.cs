@@ -40,12 +40,12 @@ namespace P2PShare.Libs
 
                 if (client is null) continue;
 
-                TCPConnectionClient.OnConnected(client);
+                TCPClient.OnConnected(client);
 
                 return;
             }
 
-            TCPConnectionClient.OnDisconnected();
+            TCPClient.OnDisconnected();
         }
 
         public static void GetRidOfListener(ref TcpListener listener)
