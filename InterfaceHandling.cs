@@ -6,20 +6,16 @@ namespace P2PShare.Libs
     {
         public static event EventHandler? InterfaceDown;
 
-        public static List<NetworkInterface> GetUpInterfaces()
+        public static NetworkInterface[] GetUpInterfaces()
         {
-            List<NetworkInterface> interfaces = NetworkInterface.GetAllNetworkInterfaces().Where(ni => ni is not null).Cast<NetworkInterface>().ToList();
-            
-            if (interfaces.Count.Equals(0)) throw new Exception("No network interfaces found"); // not user handled. must be fixed
+            NetworkInterface[] interfaces = NetworkInterface.GetAllNetworkInterfaces()
+                .Where(ni => ni is not null &&
+                    ni.OperationalStatus == OperationalStatus.Up &&
+                    ni.NetworkInterfaceType != NetworkInterfaceType.Loopback &&
+                    ni.GetIPProperties().UnicastAddresses.Count > 0)
+                .ToArray();
 
-            foreach (NetworkInterface ni in interfaces)
-            {
-                if (
-                    ni.OperationalStatus != OperationalStatus.Up ||
-                    ni.NetworkInterfaceType == NetworkInterfaceType.Loopback ||
-                    ni.GetIPProperties().UnicastAddresses.Count == 0
-                ) interfaces.Remove(ni);
-            }
+            if (interfaces.Length == 0) throw new Exception("No network interfaces found"); // not user handled. must be fixed
 
             return interfaces;
         }
