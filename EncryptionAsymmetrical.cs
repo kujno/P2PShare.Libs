@@ -19,7 +19,7 @@ namespace P2PShare.Libs
             _publicKey = new();
         }
 
-        public static int? GetPublicKeyLength(out int modulusLength, out int exponentLength)
+        public static int GetPublicKeyLength(out int modulusLength, out int exponentLength)
         {
             int keyLength;
 
@@ -30,10 +30,7 @@ namespace P2PShare.Libs
             {
                 RSAParameters rsaParameters = rsaCSP.ExportParameters(false);
 
-                if (rsaParameters.Modulus is null || rsaParameters.Exponent is null)
-                {
-                    return null;
-                }
+                if (rsaParameters.Modulus is null || rsaParameters.Exponent is null) throw new CryptographicException("Failed to export public key parameters.");
 
                 modulusLength = rsaParameters.Modulus.Length;
                 exponentLength = rsaParameters.Exponent.Length;
