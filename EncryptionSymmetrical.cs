@@ -6,23 +6,22 @@ namespace P2PShare.Libs
     {
         public int TagSize { get; } = 16;
         public int NonceSize { get; } = 12;
+        public byte[] Key { get; } = new byte[_keySize];
         private const byte _keySize = 32;
-        private byte[] _key = new byte[_keySize];
         private byte[]? _oldNonce;
 
         public EncryptionSymmetrical(byte[] key)
         {
-            _key = key;
+            Key = key;
         }
 
         public EncryptionSymmetrical()
         {
-            RandomNumberGenerator.Fill(_key);
+            RandomNumberGenerator.Fill(Key);
         }
 
         public byte[] Encrypt(byte[] data)
         {
-            AesGcm aes;
             byte[] cipherText = new byte[data.Length];
             byte[] tag = new byte[TagSize];
             byte[] nonce = new byte[NonceSize];
@@ -33,16 +32,17 @@ namespace P2PShare.Libs
             }
             while (nonce == _oldNonce);
 
-            aes = new(_key, TagSize);
-
-            aes.Encrypt(nonce, data, cipherText, tag);
+            using (AesGcm aes = new(Key, TagSize))
+            {
+                aes.Encrypt(nonce, data, cipherText, tag);
+            }
 
             _oldNonce = nonce;
 
             return cipherText.Concat(tag).Concat(nonce).ToArray();
         }
 
-        public byte[]? Decrypt(byte[] data)
+        public byte[] Decrypt(byte[] data)
         {
             byte[] tag = new byte[TagSize];
             byte[] cleanData = new byte[data.Length - TagSize - NonceSize];
@@ -53,7 +53,7 @@ namespace P2PShare.Libs
             Array.Copy(data, cleanData.Length, tag, 0, TagSize);
             Array.Copy(data, cleanData.Length + TagSize, nonce, 0, NonceSize);
 
-            using (AesGcm aes = new(_key, TagSize))
+            using (AesGcm aes = new(Key, TagSize))
             {
                 try
                 {
@@ -61,7 +61,7 @@ namespace P2PShare.Libs
                 }
                 catch
                 {
-                    return null;
+                    throw new Exception("Decryption failed");
                 }
             }
 
