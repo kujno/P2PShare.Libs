@@ -1,11 +1,12 @@
 ﻿using System.Net;
 using System.Net.Sockets;
+using System.Text;
 
 namespace P2PShare.Libs
 {
     public class TCPConnection
     {
-        private static int initialPort = 57001;
+        private static int _initialPort = 57001;
 
         private CancellationTokenSource _cancellationTokenSource = new();
 
@@ -17,34 +18,60 @@ namespace P2PShare.Libs
         {
         }
 
-        private async Task waitForInvite(IPAddress ip)
+        private async Task receiveInvite(IPAddress ip) // put the whole code to a method in a try-catch
         {
-            TcpListener _tcpListener = new TcpListener(ip, initialPort);
+            EncryptionSymmetrical encryption = new();
+        }
+
+        private async Task<byte> getPort(IPAddress ip, EncryptionSymmetrical encryptionSymmetrical)
+        {
+            TcpListener listener = new TcpListener(ip, _initialPort);
             TcpClient client;
             NetworkStream stream;
             int modulusLength, exponentLength;
-            byte[] rsaKey = new byte[EncryptionAsymmetrical.GetPublicKeyLength(out modulusLength, out exponentLength)], modulus = new byte[modulusLength], exponent = new byte[exponentLength];
             EncryptorAsymmetrical encryptorAsymmetrical;
-            EncryptionSymmetrical encryptionSymmetrical = new();
+            byte[] rsaKey = new byte[EncryptionAsymmetrical.GetPublicKeyLength(out modulusLength, out exponentLength)], modulus = new byte[modulusLength], exponent = new byte[exponentLength];
+            byte[] buffer = new byte[_initialPort.ToString().Length + encryptionSymmetrical.TagSize + encryptionSymmetrical.NonceSize];
 
-            _tcpListener.Start();
+            listener.Start();
 
             do
             {
-                client = await _tcpListener.AcceptTcpClientAsync(_cancellationTokenSource.Token);
+                client = await listener.AcceptTcpClientAsync(_cancellationTokenSource.Token);
             }
             while (!client.Connected);
 
-            stream = client.GetStream();
+            try
+            {
+                stream = client.GetStream();
 
-            await stream.ReadExactlyAsync(rsaKey, _cancellationTokenSource.Token);
+                await stream.ReadExactlyAsync(rsaKey, _cancellationTokenSource.Token);
 
-            Array.Copy(rsaKey, 0, modulus, 0, modulusLength);
-            Array.Copy(rsaKey, modulusLength, exponent, 0, exponentLength);
+                Array.Copy(rsaKey, 0, modulus, 0, modulusLength);
+                Array.Copy(rsaKey, modulusLength, exponent, 0, exponentLength);
 
-            encryptorAsymmetrical = new(modulus, exponent);
+                encryptorAsymmetrical = new(modulus, exponent);
 
-            await stream.WriteAsync(encryptorAsymmetrical.Encrypt(encryptionSymmetrical.)) // TODO: repair - aes key should be created in its own class
+                await stream.WriteAsync(encryptorAsymmetrical.Encrypt(encryptionSymmetrical.Key), _cancellationTokenSource.Token);
+
+                await stream.ReadExactlyAsync(buffer, _cancellationTokenSource.Token);
+
+                return byte.Parse(Encoding.UTF8.GetString(encryptionSymmetrical.Decrypt(buffer)));
+            }
+            catch (OperationCanceledException)
+            {
+                throw new OperationCanceledException();
+            }
+            catch (Exception ex)
+            {
+                throw new Exception(ex.Message);
+            }
+            finally
+            {
+                listener?.Stop();
+                listener?.Dispose();
+                client?.Dispose();
+            }
         }
     }
 }
