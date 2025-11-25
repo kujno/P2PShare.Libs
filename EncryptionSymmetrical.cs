@@ -6,7 +6,8 @@ namespace P2PShare.Libs
     {
         public int TagSize { get; } = 16;
         public int NonceSize { get; } = 12;
-        private byte[] _key;
+        private const byte _keySize = 32;
+        private byte[] _key = new byte[_keySize];
         private byte[]? _oldNonce;
 
         public EncryptionSymmetrical(byte[] key)
@@ -16,7 +17,7 @@ namespace P2PShare.Libs
 
         public EncryptionSymmetrical()
         {
-            _key = Array.Empty<byte>();
+            RandomNumberGenerator.Fill(_key);
         }
 
         public byte[] Encrypt(byte[] data)
