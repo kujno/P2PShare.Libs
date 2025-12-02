@@ -4,45 +4,39 @@ using System.Text;
 
 namespace P2PShare.Libs
 {
-    public class TCPConnection
+    public class ConncectionHandler
     {
         private static int _initialPort = 57001;
 
         private CancellationTokenSource _cancellationTokenSource = new();
 
-        public TCPConnection(IPAddress ipLocal)
+        public ConncectionHandler(IPAddress ipLocal)
         {
         }
 
-        private async Task connect()
+        private async Task ConnectAsync()
         {
         }
 
-        private async Task receiveInvite(IPAddress ip) // put the whole code to a method in a try-catch
+        private async Task ReceiveInviteAsync(IPAddress ip)
         {
             EncryptionSymmetrical encryption = new();
+            TcpClient client = await GetTcpClientAsync(ip, await GetPortAsync(ip, encryption));
         }
 
-        private async Task<byte> getPort(IPAddress ip, EncryptionSymmetrical encryptionSymmetrical)
+        private async Task<byte> GetPortAsync(IPAddress ip, EncryptionSymmetrical encryptionSymmetrical)
         {
-            TcpListener listener = new TcpListener(ip, _initialPort);
-            TcpClient client;
+            TcpClient? client = null;
             NetworkStream stream;
             int modulusLength, exponentLength;
             EncryptorAsymmetrical encryptorAsymmetrical;
             byte[] rsaKey = new byte[EncryptionAsymmetrical.GetPublicKeyLength(out modulusLength, out exponentLength)], modulus = new byte[modulusLength], exponent = new byte[exponentLength];
             byte[] buffer = new byte[_initialPort.ToString().Length + encryptionSymmetrical.TagSize + encryptionSymmetrical.NonceSize];
 
-            listener.Start();
-
-            do
-            {
-                client = await listener.AcceptTcpClientAsync(_cancellationTokenSource.Token);
-            }
-            while (!client.Connected);
-
             try
             {
+                client = await GetTcpClientAsync(ip);
+
                 stream = client.GetStream();
 
                 await stream.ReadExactlyAsync(rsaKey, _cancellationTokenSource.Token);
@@ -68,10 +62,47 @@ namespace P2PShare.Libs
             }
             finally
             {
+                client?.Dispose();
+            }
+        }
+
+        private async Task<TcpClient> GetTcpClientAsync(IPAddress ip, int port)
+        {
+            TcpListener? listener = null;
+            TcpClient? client = null;
+
+
+            try
+            {
+                listener = new TcpListener(ip, port);
+                listener.Start();
+                do
+                {
+                    client = await listener.AcceptTcpClientAsync(_cancellationTokenSource.Token);
+                }
+                while (!client.Connected);
+            }
+            catch (OperationCanceledException)
+            {
+                throw new OperationCanceledException();
+            }
+            catch (Exception ex)
+            {
+                throw new Exception(ex.Message);
+            }
+            finally
+            {
                 listener?.Stop();
                 listener?.Dispose();
                 client?.Dispose();
             }
+
+            return client;
+        }
+
+        private async Task<TcpClient> GetTcpClientAsync(IPAddress ip)
+        {
+            return await GetTcpClientAsync(ip, _initialPort);
         }
     }
 }
