@@ -4,22 +4,23 @@ using System.Text;
 
 namespace P2PShare.Libs
 {
-    public class ConncectionHandler
+    public class ConnectionHandler
     {
         private static readonly int _initialPort = 57001;
+        private static readonly byte[] y = Encoding.UTF8.GetBytes("y");
 
         private readonly CancellationTokenSource _cancellationTokenSource = new();
 
         private TcpClient? _client;
         private NetworkStream? _stream;
         private EncryptionSymmetrical? _encryptionSymmetrical;
-        private Dictionary<string, long>? _filesAndSizes;
+        private Queue<KeyValuePair<string, long>>? _filesAndSizes;
 
-        public EventHandler<Dictionary<string, long>>? InviteReceived;
+        public EventHandler<Queue<KeyValuePair<string, long>>>? InviteReceived;
         public EventHandler? Cancelled;
         public EventHandler<string?>? Failed;
 
-        public ConncectionHandler(IPAddress ipLocal)
+        public ConnectionHandler(IPAddress ipLocal)
         {
         }
 
@@ -30,7 +31,7 @@ namespace P2PShare.Libs
         private async Task ReceiveInviteAsync(IPAddress ip)
         {
             int modulusLength, exponentLength, read;
-            string files = String.Empty;
+            var files = String.Empty;
             string[] filesSplit;
             byte[] rsaKey = new byte[EncryptionAsymmetrical.GetPublicKeyLength(out modulusLength, out exponentLength)], modulus = new byte[modulusLength], exponent = new byte[exponentLength], buffer;
 
@@ -86,14 +87,37 @@ namespace P2PShare.Libs
             }
 
             filesSplit = files.Split();
-            foreach (string file in filesSplit)
+            foreach (var file in filesSplit)
             {
-                int index = file.IndexOf(':');
+                var index = file.IndexOf(':');
 
-                _filesAndSizes.Add(file.Substring(0, index), long.Parse(file.Substring(index + 1)));
+                _filesAndSizes.Enqueue(new(file.Substring(0, index), long.Parse(file.Substring(index + 1))));
             }
 
             OnInviteReceived(_filesAndSizes);
+        }
+
+        public async Task AcceptFilesAsync(string dictionaryPath)
+        {
+            try
+            {
+                await _stream!.WriteAsync(y, _cancellationTokenSource.Token);
+
+                while (_filesAndSizes!.Count > 0)
+                {
+                    var fileAndSize = _filesAndSizes.Dequeue();
+
+
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                OnCancelled();
+            }
+            catch (Exception ex)
+            {
+                OnFailed(ex.Message);
+            }
         }
 
         private async Task<TcpClient> GetTcpClientAsync(IPAddress ip, int port)
@@ -136,7 +160,7 @@ namespace P2PShare.Libs
             return await GetTcpClientAsync(ip, _initialPort);
         }
 
-        private void OnInviteReceived(Dictionary<string, long> files)
+        private void OnInviteReceived(Queue<KeyValuePair<string, long>> files)
         {
             InviteReceived?.Invoke(this, files);
         }
