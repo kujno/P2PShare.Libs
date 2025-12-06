@@ -4,10 +4,13 @@ namespace P2PShare.Libs
 {
     public class EncryptionSymmetrical
     {
-        public int TagSize { get; } = 16;
-        public int NonceSize { get; } = 12;
+        public static byte TagSize { get; } = 16;
+        public static byte NonceSize { get; } = 12;
+
+        private static readonly byte _keySize = 32;
+
         public byte[] Key { get; } = new byte[_keySize];
-        private const byte _keySize = 32;
+        
         private byte[]? _oldNonce;
 
         public EncryptionSymmetrical(byte[] key)
