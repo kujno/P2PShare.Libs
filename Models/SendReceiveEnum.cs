@@ -1,4 +1,4 @@
-﻿namespace P2PShare.Models
+﻿namespace P2PShare.Libs.Models
 {
     public enum SendReceiveEnum
     {
