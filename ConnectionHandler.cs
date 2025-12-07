@@ -17,6 +17,8 @@ namespace P2PShare.Libs
         protected TcpClient? _client;
         protected NetworkStream? _netStream;
 
+        protected byte CalculatePercentage(long fileLength, long bytesProcessed) => (byte)((100 / fileLength) * bytesProcessed);
+
         public event EventHandler<FilePartTransportedEventArgs>? FilePartTransported;
 
         protected void OnFilePartTransported(byte amountOfFiles, byte currentFile, byte part, SendReceiveEnum sendReceive)
