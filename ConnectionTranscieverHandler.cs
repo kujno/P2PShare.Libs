@@ -68,7 +68,7 @@ namespace P2PShare.Libs
 
                         bytesRead += await fileStream.ReadAsync(buffer, _cancellationTokenSource.Token);
                         await _netStream.WriteAsync(encryption.Encrypt(buffer), _cancellationTokenSource.Token);
-                        OnFilePartTransported((byte)files.Length, (byte)i, (byte)((100 / files[i].Length) * bytesRead), SendReceiveEnum.Send);
+                        OnFilePartTransported((byte)files.Length, (byte)i, CalculatePercentage(files[i].Length, bytesRead), SendReceiveEnum.Send);
                     }
                 }
             }

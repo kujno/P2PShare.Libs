@@ -131,7 +131,7 @@ namespace P2PShare.Libs
 
                             totalBytesRead += buffer.Length - _encryptionDataSize;
 
-                            OnFilePartTransported(amountOfFiles, (byte)i, (byte)((100 / fileAndSize.Value) * totalBytesRead), SendReceiveEnum.Receive);
+                            OnFilePartTransported(amountOfFiles, (byte)i, CalculatePercentage(fileAndSize.Value, totalBytesRead), SendReceiveEnum.Receive);
 
                             await fileStream.WriteAsync(_encryptionSymmetrical?.Decrypt(buffer), _cancellationTokenSource.Token);
                         }
