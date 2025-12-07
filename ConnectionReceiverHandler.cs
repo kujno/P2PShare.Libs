@@ -93,19 +93,22 @@ namespace P2PShare.Libs
         public async Task AcceptFilesAsync(string dictionaryPath)
         {
             byte amountOfFiles = (byte)_filesAndSizes!.Count;
-            int fileNum = 0;
 
             try
             {
                 await _netStream!.WriteAsync(_y, _cancellationTokenSource.Token);
 
-                while (_filesAndSizes!.Count > 0)
+                for (int i = 1; _filesAndSizes!.Count > 0; i++)
                 {
                     var fileAndSize = _filesAndSizes.Dequeue();
+                    var path = $"{dictionaryPath}\\{fileAndSize.Key}";
 
-                    fileNum++;
+                    for (int j = 0; File.Exists(path); j++)
+                    {
+                        path = $"{dictionaryPath}\\{fileAndSize.Key} ({j})";
+                    }
 
-                    using (FileStream fileStream = new($"{dictionaryPath}\\{fileAndSize.Key}", FileMode.Create))
+                    using (FileStream fileStream = new(path, FileMode.Create))
                     {
                         int totalBytesRead = 0;
 
@@ -117,7 +120,7 @@ namespace P2PShare.Libs
 
                             totalBytesRead += buffer.Length - _encryptionDataSize;
 
-                            OnFilePartTransported(amountOfFiles, (byte)fileNum, (byte)((100 / fileAndSize.Value) * totalBytesRead), SendReceiveEnum.Receive);
+                            OnFilePartTransported(amountOfFiles, (byte)i, (byte)((100 / fileAndSize.Value) * totalBytesRead), SendReceiveEnum.Receive);
 
                             await fileStream.WriteAsync(_encryptionSymmetrical?.Decrypt(buffer), _cancellationTokenSource.Token);
                         }
