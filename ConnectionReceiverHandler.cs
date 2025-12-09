@@ -12,9 +12,9 @@ namespace P2PShare.Libs
         private Queue<KeyValuePair<string, long>>? _filesAndSizes;
         private bool _encrypted;
 
-        private readonly IPAddress _localIP;
+        public IPAddress LocalIP { get; }
 
-        public ConnectionReceiverHandler(IPAddress localIP) => _localIP = localIP;
+        public ConnectionReceiverHandler(IPAddress localIP) => LocalIP = localIP;
 
         public async Task<Queue<KeyValuePair<string, long>>> ReceiveInviteAsync()
         {
@@ -29,7 +29,7 @@ namespace P2PShare.Libs
             {
                 byte[] rsaKey = new byte[EncryptionAsymmetrical.GetPublicKeyLength(out modulusLength, out exponentLength)], modulus = new byte[modulusLength], exponent = new byte[exponentLength], encryptionBuffer = new byte[_y.Length], inviteArr;
 
-                await ReceiveTcpClientAsync(_localIP, (byte)_initialPort);
+                await ReceiveTcpClientAsync(LocalIP, (byte)_initialPort);
 
                 _netStream = _client!.GetStream();
 
@@ -108,7 +108,7 @@ namespace P2PShare.Libs
 
                     port = byte.Parse(Encoding.UTF8.GetString(_encrypted ? _encryptionSymmetrical!.Decrypt(buffer) : buffer));
 
-                    check = IsPortAvailable(_localIP, port);
+                    check = IsPortAvailable(LocalIP, port);
 
                     if (!check) await _netStream.WriteAsync(_encrypted ? _encryptor?.Encrypt(_n) : _n, _cancellationTokenSource.Token);
                     else await _netStream.WriteAsync(_encrypted ? _encryptor?.Encrypt(_y) : _y, _cancellationTokenSource.Token);
@@ -117,7 +117,7 @@ namespace P2PShare.Libs
 
                 DisposeClient();
 
-                await ReceiveTcpClientAsync(_localIP, port);
+                await ReceiveTcpClientAsync(LocalIP, port);
                 _netStream = _client?.GetStream();
 
                 for (int i = 1; _filesAndSizes!.Count > 0; i++)
