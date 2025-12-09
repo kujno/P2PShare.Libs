@@ -78,7 +78,7 @@ namespace P2PShare.Libs
             filesSplit = files.Split();
             foreach (var file in filesSplit)
             {
-                var index = file.IndexOf(InviteSeparator);
+                var index = file.IndexOf(_inviteSeparator);
 
                 _filesAndSizes.Enqueue(new(file.Substring(0, index), long.Parse(file.Substring(index + 1))));
             }
