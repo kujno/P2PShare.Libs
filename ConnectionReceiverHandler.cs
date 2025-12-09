@@ -168,6 +168,21 @@ namespace P2PShare.Libs
             return savedFiles.ToArray();
         }
 
+        public async Task DenyFilesAsync()
+        {
+            try
+            {
+                await _netStream!.WriteAsync(_encrypted ? _encryptor?.Encrypt(_n) : _n, _cancellationTokenSource.Token);
+            }
+            catch
+            {
+            }
+            finally
+            {
+                Dispose();
+            }
+        }
+
         private async Task ReceiveTcpClientAsync(IPAddress ip, byte port)
         {
             TcpListener? listener = null;
