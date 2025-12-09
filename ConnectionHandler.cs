@@ -7,10 +7,11 @@ namespace P2PShare.Libs
 {
     public abstract class ConnectionHandler : IDisposable
     {
+        public static char InviteSeparator { get; } = ':';
+
         protected static readonly byte _encryptionDataSize = (byte)(EncryptionSymmetrical.TagSize + EncryptionSymmetrical.NonceSize);
         protected static readonly int _initialPort = 57001, _inviteBufferSize = 1024, _fileTransportBufferSize = 8192;
         protected static readonly byte[] _y = Encoding.UTF8.GetBytes("y"), _n = Encoding.UTF8.GetBytes("n");
-        protected static readonly char _inviteSeparator = ':';
 
         protected readonly CancellationTokenSource _cancellationTokenSource = new();
 

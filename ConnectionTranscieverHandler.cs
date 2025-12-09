@@ -46,7 +46,7 @@ namespace P2PShare.Libs
 
                 foreach (var file in files)
                 {
-                    invite += $" {file.Name}{_inviteSeparator}{file.Length}";
+                    invite += $" {file.Name}{InviteSeparator}{file.Length}";
                 }
 
                 bufferSend = Encoding.UTF8.GetBytes(invite.Trim());
