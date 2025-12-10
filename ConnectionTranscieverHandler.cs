@@ -7,7 +7,7 @@ namespace P2PShare.Libs
 {
     public class ConnectionTranscieverHandler : ConnectionHandler
     {
-        public async void SendAsync(IPAddress ipRemote, IPAddress ipLocal, FileInfo[] files, bool encrypted)
+        public async Task SendAsync(IPAddress ipRemote, IPAddress ipLocal, FileInfo[] files, bool encrypted)
         {
             try
             {
@@ -18,14 +18,14 @@ namespace P2PShare.Libs
                 Random random = new();
                 byte[] bufferSend;
                 byte[] bufferAsymmetrical;
-                byte port;
+                int port;
                 string invite = String.Empty;
 
                 if (encrypted) decryptor = new();
 
                 bufferAsymmetrical = new byte[encrypted ? decryptor?.PublicKey.Modulus?.Length ?? throw new ArgumentNullException("Encryption failed.") : _y.Length];
 
-                await ConnectAsync(ipRemote, ipLocal, (byte)_initialPort);
+                await ConnectAsync(ipRemote, ipLocal, _initialPort);
                 _netStream = _client!.GetStream();
 
                 if (encrypted)
@@ -61,7 +61,7 @@ namespace P2PShare.Libs
                 {
                     do
                     {
-                        port = (byte)random.Next(49152, 65536);
+                        port = random.Next(49152, 65536);
                     }
                     while (!IsPortAvailable(ipLocal, port));
 
@@ -86,7 +86,7 @@ namespace P2PShare.Libs
 
                         bytesRead += await fileStream.ReadAsync(buffer, _cancellationTokenSource.Token);
                         await _netStream.WriteAsync(encrypted ? encryption?.Encrypt(buffer) : buffer, _cancellationTokenSource.Token);
-                        OnFilePartTransported((byte)files.Length, (byte)i, CalculatePercentage(files[i].Length, bytesRead), SendReceive.Send);
+                        OnFilePartTransported(files.Length, i, CalculatePercentage(files[i].Length, bytesRead), SendReceive.Send);
                     }
                 }
             }
@@ -112,7 +112,7 @@ namespace P2PShare.Libs
             }
         }
 
-        private async Task ConnectAsync(IPAddress ipRemote, IPAddress ipLocal, byte port)
+        private async Task ConnectAsync(IPAddress ipRemote, IPAddress ipLocal, int port)
         {
             TcpClient client = new();
 
