@@ -1,11 +1,11 @@
-﻿using System.Net.NetworkInformation;
+﻿using System.Net;
+using System.Net.NetworkInformation;
+using System.Net.Sockets;
 
 namespace P2PShare.Libs
 {
     public class InterfaceHandling
     {
-        public static event EventHandler? InterfaceDown;
-
         public static NetworkInterface[] GetUpInterfaces()
         {
             NetworkInterface[] interfaces = NetworkInterface.GetAllNetworkInterfaces()
@@ -20,28 +20,10 @@ namespace P2PShare.Libs
             return interfaces;
         }
 
-        public static async Task MonitorInterface(NetworkInterface @interface, Cancellation cancellation)
+        public static IPAddress? GetLocalIP(NetworkInterface @interface)
         {
-            try
-            {
-                while (@interface.OperationalStatus == OperationalStatus.Up)
-                {
-                    if (cancellation.TokenSource is null || cancellation.TokenSource.Token.IsCancellationRequested) return;
-
-                    await Task.Delay(1000);
-                }
-            }
-            catch
-            {
-
-            }
-
-            OnInterfaceDown();
-        }
-
-        private static void OnInterfaceDown()
-        {
-            InterfaceDown?.Invoke(null, EventArgs.Empty);
+            foreach (var ip in @interface.GetIPProperties().UnicastAddresses) if (ip.Address.AddressFamily == AddressFamily.InterNetwork) return ip.Address;
+            return null;
         }
     }
 }

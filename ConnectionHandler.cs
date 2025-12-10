@@ -21,7 +21,7 @@ namespace P2PShare.Libs
 
         public event EventHandler<FilePartTransportedEventArgs>? FilePartTransported;
 
-        protected void OnFilePartTransported(byte amountOfFiles, byte currentFile, byte part, SendReceiveEnum sendReceive)
+        protected void OnFilePartTransported(byte amountOfFiles, byte currentFile, byte part, SendReceive sendReceive)
         {
             FilePartTransported?.Invoke(this, new FilePartTransportedEventArgs(amountOfFiles, currentFile, part, sendReceive));
         }
