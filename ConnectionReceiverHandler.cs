@@ -9,14 +9,14 @@ namespace P2PShare.Libs
     {
         private EncryptorAsymmetrical? _encryptor;
         private EncryptionSymmetrical? _encryptionSymmetrical;
-        private Queue<KeyValuePair<string, long>>? _filesAndSizes;
+        private Dictionary<string, long>? _filesAndSizes;
         private bool _encrypted;
 
         public IPAddress LocalIP { get; }
 
         public ConnectionReceiverHandler(IPAddress localIP) => LocalIP = localIP;
 
-        public async Task<Queue<KeyValuePair<string, long>>> ReceiveInviteAsync()
+        public async Task<Dictionary<string, long>> ReceiveInviteAsync()
         {
             int modulusLength, exponentLength, read;
             var files = String.Empty;
@@ -29,7 +29,7 @@ namespace P2PShare.Libs
             {
                 byte[] rsaKey = new byte[EncryptionAsymmetrical.GetPublicKeyLength(out modulusLength, out exponentLength)], modulus = new byte[modulusLength], exponent = new byte[exponentLength], encryptionBuffer = new byte[_y.Length], inviteArr;
 
-                await ReceiveTcpClientAsync(LocalIP, (byte)_initialPort);
+                await ReceiveTcpClientAsync(LocalIP, _initialPort);
 
                 _netStream = _client!.GetStream();
 
@@ -80,7 +80,7 @@ namespace P2PShare.Libs
             {
                 var index = file.IndexOf(_inviteSeparator);
 
-                _filesAndSizes.Enqueue(new(file.Substring(0, index), long.Parse(file.Substring(index + 1))));
+                _filesAndSizes[file.Substring(0, index)] = long.Parse(file.Substring(index + 1));
             }
 
             return _filesAndSizes;
@@ -93,7 +93,7 @@ namespace P2PShare.Libs
             try
             {
                 bool check;
-                byte amountOfFiles = (byte)_filesAndSizes!.Count, port;
+                int amountOfFiles = _filesAndSizes!.Count, port;
                 long bufferSize = _initialPort.ToString().Length;
                 byte[] buffer;
 
@@ -106,7 +106,7 @@ namespace P2PShare.Libs
                 {
                     await _netStream!.ReadExactlyAsync(buffer, _cancellationTokenSource.Token);
 
-                    port = byte.Parse(Encoding.UTF8.GetString(_encrypted ? _encryptionSymmetrical!.Decrypt(buffer) : buffer));
+                    port = int.Parse(Encoding.UTF8.GetString(_encrypted ? _encryptionSymmetrical!.Decrypt(buffer) : buffer));
 
                     check = IsPortAvailable(LocalIP, port);
 
@@ -120,9 +120,9 @@ namespace P2PShare.Libs
                 await ReceiveTcpClientAsync(LocalIP, port);
                 _netStream = _client?.GetStream();
 
-                for (int i = 1; _filesAndSizes!.Count > 0; i++)
+                for (int i = 1; i <= _filesAndSizes.Count; i++)
                 {
-                    var fileAndSize = _filesAndSizes.Dequeue();
+                    var fileAndSize = _filesAndSizes.ElementAt(i - 1);
                     string file = fileAndSize.Key, path = $"{dictionaryPath}\\{file}";
 
                     for (int j = 0; File.Exists(path); j++)
@@ -145,7 +145,7 @@ namespace P2PShare.Libs
 
                             totalBytesRead += _encrypted ? buffer.Length - _encryptionDataSize : buffer.Length;
 
-                            OnFilePartTransported(amountOfFiles, (byte)i, CalculatePercentage(fileAndSize.Value, totalBytesRead), SendReceive.Receive);
+                            OnFilePartTransported(amountOfFiles, i, CalculatePercentage(fileAndSize.Value, totalBytesRead), SendReceive.Receive);
 
                             await fileStream.WriteAsync(_encrypted ? _encryptionSymmetrical?.Decrypt(buffer) : buffer, _cancellationTokenSource.Token);
                         }
@@ -183,7 +183,7 @@ namespace P2PShare.Libs
             }
         }
 
-        private async Task ReceiveTcpClientAsync(IPAddress ip, byte port)
+        private async Task ReceiveTcpClientAsync(IPAddress ip, int port)
         {
             TcpListener? listener = null;
             TcpClient? client = null;

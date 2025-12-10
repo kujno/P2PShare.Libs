@@ -7,8 +7,7 @@ namespace P2PShare.Libs
 {
     public abstract class ConnectionHandler : IDisposable
     {
-        protected static readonly byte _encryptionDataSize = (byte)(EncryptionSymmetrical.TagSize + EncryptionSymmetrical.NonceSize);
-        protected static readonly int _initialPort = 57001, _inviteBufferSize = 1024, _fileTransportBufferSize = 8192;
+        protected static readonly int _encryptionDataSize = EncryptionSymmetrical.TagSize + EncryptionSymmetrical.NonceSize, _initialPort = 57001, _inviteBufferSize = 1024, _fileTransportBufferSize = 8192;
         protected static readonly byte[] _y = Encoding.UTF8.GetBytes("y"), _n = Encoding.UTF8.GetBytes("n");
         protected static readonly char _inviteSeparator = ':';
 
@@ -17,11 +16,11 @@ namespace P2PShare.Libs
         protected TcpClient? _client;
         protected NetworkStream? _netStream;
 
-        protected byte CalculatePercentage(long fileLength, long bytesProcessed) => (byte)((100 / fileLength) * bytesProcessed);
+        protected int CalculatePercentage(long fileLength, long bytesProcessed) => (int)((100 / fileLength) * bytesProcessed);
 
         public event EventHandler<FilePartTransportedEventArgs>? FilePartTransported;
 
-        protected void OnFilePartTransported(byte amountOfFiles, byte currentFile, byte part, SendReceive sendReceive)
+        protected void OnFilePartTransported(int amountOfFiles, int currentFile, int part, SendReceive sendReceive)
         {
             FilePartTransported?.Invoke(this, new FilePartTransportedEventArgs(amountOfFiles, currentFile, part, sendReceive));
         }
@@ -38,7 +37,7 @@ namespace P2PShare.Libs
             _client?.Dispose();
         }
 
-        protected bool IsPortAvailable(IPAddress ip, byte port)
+        protected bool IsPortAvailable(IPAddress ip, int port)
         {
             TcpListener? listener = null;
 
