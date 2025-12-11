@@ -16,7 +16,7 @@ namespace P2PShare.Libs
 
         public ConnectionReceiverHandler(IPAddress localIP) => LocalIP = localIP;
 
-        public async Task<Dictionary<string, long>> ReceiveInviteAsync()
+        public async Task<Dictionary<string, long>> ReceiveInviteAsync() // should also return if its encrypted
         {
             int modulusLength, exponentLength, read;
             var files = String.Empty;
