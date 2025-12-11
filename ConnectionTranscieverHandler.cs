@@ -106,10 +106,6 @@ namespace P2PShare.Libs
             {
                 throw new Exception("Sending file(s) failed.");
             }
-            finally
-            {
-                Dispose();
-            }
         }
 
         private async Task ConnectAsync(IPAddress ipRemote, IPAddress ipLocal, int port)
@@ -127,14 +123,10 @@ namespace P2PShare.Libs
             }
             catch (OperationCanceledException)
             {
-                client.Dispose();
-
                 throw new OperationCanceledException();
             }
             catch (Exception ex)
             {
-                client.Dispose();
-
                 throw new Exception(ex.Message);
             }
 

@@ -64,14 +64,10 @@ namespace P2PShare.Libs
             }
             catch (OperationCanceledException)
             {
-                Dispose();
-
                 throw new OperationCanceledException();
             }
             catch
             {
-                Dispose();
-
                 throw new Exception("Receiving invite failed.");
             }
 
@@ -160,10 +156,6 @@ namespace P2PShare.Libs
             {
                 throw new Exception("Receiving file(s) failed.");
             }
-            finally
-            {
-                Dispose();
-            }
 
             return savedFiles.ToArray();
         }
@@ -176,10 +168,6 @@ namespace P2PShare.Libs
             }
             catch
             {
-            }
-            finally
-            {
-                Dispose();
             }
         }
 
@@ -200,14 +188,10 @@ namespace P2PShare.Libs
             }
             catch (OperationCanceledException)
             {
-                client?.Dispose();
-
                 throw new OperationCanceledException();
             }
             catch (Exception ex)
             {
-                client?.Dispose();
-
                 throw new Exception(ex.Message);
             }
             finally
