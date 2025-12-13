@@ -7,6 +7,10 @@ namespace P2PShare.Libs
 {
     public abstract class ConnectionHandler : IDisposable
     {
+        public static event EventHandler<FilePartTransportedEventArgs>? FilePartTransported;
+
+        public static char FileSeparator { get; } = '|';
+
         protected static readonly int _encryptionDataSize = EncryptionSymmetrical.TagSize + EncryptionSymmetrical.NonceSize, _initialPort = 57001, _inviteBufferSize = 1024, _fileTransportBufferSize = 8192;
         protected static readonly byte[] _y = Encoding.UTF8.GetBytes("y"), _n = Encoding.UTF8.GetBytes("n");
         protected static readonly char _inviteSeparator = ':';
@@ -17,10 +21,6 @@ namespace P2PShare.Libs
         protected NetworkStream? _netStream;
 
         protected int CalculatePercentage(long fileLength, long bytesProcessed) => (int)((100 / fileLength) * bytesProcessed);
-
-        public static char FileSeparator { get; } = '|';
-
-        public event EventHandler<FilePartTransportedEventArgs>? FilePartTransported;
 
         protected void OnFilePartTransported(int amountOfFiles, int currentFile, int part, SendReceive sendReceive)
         {
