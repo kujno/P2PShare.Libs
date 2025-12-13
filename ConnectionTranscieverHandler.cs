@@ -7,6 +7,8 @@ namespace P2PShare.Libs
 {
     public class ConnectionTranscieverHandler : ConnectionHandler
     {
+        public static event EventHandler<IPAddress>? Contacted;
+        
         public async Task SendAsync(IPAddress ipRemote, IPAddress ipLocal, FileInfo[] files, bool encrypted)
         {
             try
@@ -25,6 +27,7 @@ namespace P2PShare.Libs
 
                 bufferAsymmetrical = new byte[encrypted ? decryptor?.PublicKey.Modulus?.Length ?? throw new ArgumentNullException("Encryption failed.") : _y.Length];
 
+                OnContacted(ipRemote);
                 await ConnectAsync(ipRemote, ipLocal, _initialPort);
                 _netStream = _client!.GetStream();
 
@@ -134,6 +137,11 @@ namespace P2PShare.Libs
             }
 
             _client = client;
+        }
+
+        private void OnContacted(IPAddress ip)
+        {
+            Contacted?.Invoke(this, ip);
         }
     }
 }
