@@ -18,6 +18,8 @@ namespace P2PShare.Libs
 
         protected int CalculatePercentage(long fileLength, long bytesProcessed) => (int)((100 / fileLength) * bytesProcessed);
 
+        public static char FileSeparator { get; } = '|';
+
         public event EventHandler<FilePartTransportedEventArgs>? FilePartTransported;
 
         protected void OnFilePartTransported(int amountOfFiles, int currentFile, int part, SendReceive sendReceive)

@@ -71,7 +71,7 @@ namespace P2PShare.Libs
                 throw new Exception("Receiving invite failed.");
             }
 
-            filesSplit = files.Split();
+            filesSplit = files.Split(FileSeparator);
             foreach (var file in filesSplit)
             {
                 var index = file.IndexOf(_inviteSeparator);

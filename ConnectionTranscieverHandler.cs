@@ -44,9 +44,12 @@ namespace P2PShare.Libs
                 // send encryption status
                 else await _netStream.WriteAsync(_n, _cancellationTokenSource.Token);
 
-                foreach (var file in files)
+                for (int i = 0; i < files.Length; i++)
                 {
-                    invite += $" {file.Name}{_inviteSeparator}{file.Length}";
+                    var file = files[i];
+
+                    invite += $"{file.Name}{_inviteSeparator}{file.Length}";
+                    if (i < files.Length - 1) invite += FileSeparator;
                 }
 
                 bufferSend = Encoding.UTF8.GetBytes(invite.Trim());
