@@ -14,7 +14,7 @@ namespace P2PShare.Libs
 
         public IPAddress LocalIP { get; }
 
-        public ConnectionReceiverHandler(IPAddress localIP) => LocalIP = localIP;
+        public ConnectionReceiverHandler(IPAddress localIP, CancellationToken cancellationToken) : base(cancellationToken) => LocalIP = localIP;
 
         public async Task<Dictionary<string, long>> ReceiveInviteAsync() // should also return if its encrypted
         {
@@ -33,19 +33,19 @@ namespace P2PShare.Libs
 
                 _netStream = _client!.GetStream();
 
-                await _netStream.ReadExactlyAsync(encryptionBuffer, _cancellationTokenSource.Token);
+                await _netStream.ReadExactlyAsync(encryptionBuffer, _cancellationToken);
                 _encrypted = encryptionBuffer == _y;
 
                 if (_encrypted)
                 {
-                    await _netStream.ReadExactlyAsync(rsaKey, _cancellationTokenSource.Token);
+                    await _netStream.ReadExactlyAsync(rsaKey, _cancellationToken);
 
                     Array.Copy(rsaKey, 0, modulus, 0, modulusLength);
                     Array.Copy(rsaKey, modulusLength, exponent, 0, exponentLength);
 
                     _encryptor = new(modulus, exponent);
 
-                    await _netStream.WriteAsync(_encryptor.Encrypt(_encryptionSymmetrical.Key), _cancellationTokenSource.Token);
+                    await _netStream.WriteAsync(_encryptor.Encrypt(_encryptionSymmetrical.Key), _cancellationToken);
                 }
 
                 _filesAndSizes = [];
@@ -54,7 +54,7 @@ namespace P2PShare.Libs
                 {
                     byte[] buffer = new byte[_inviteBufferSize];
 
-                    read = await _netStream!.ReadAsync(buffer, _cancellationTokenSource.Token);
+                    read = await _netStream!.ReadAsync(buffer, _cancellationToken);
 
                     if (read > 0) invite.AddRange(buffer);
                 }
@@ -64,7 +64,7 @@ namespace P2PShare.Libs
             }
             catch (OperationCanceledException)
             {
-                throw new OperationCanceledException();
+                throw;
             }
             catch
             {
@@ -95,23 +95,23 @@ namespace P2PShare.Libs
 
                 buffer = new byte[_encrypted ? bufferSize + _encryptionDataSize : bufferSize];
 
-                await _netStream!.WriteAsync(_encrypted ? _encryptor?.Encrypt(_y) : _y, _cancellationTokenSource.Token);
+                await _netStream!.WriteAsync(_encrypted ? _encryptor?.Encrypt(_y) : _y, _cancellationToken);
 
                 // receive port number
                 do
                 {
-                    await _netStream!.ReadExactlyAsync(buffer, _cancellationTokenSource.Token);
+                    await _netStream!.ReadExactlyAsync(buffer, _cancellationToken);
 
                     port = int.Parse(Encoding.UTF8.GetString(_encrypted ? _encryptionSymmetrical!.Decrypt(buffer) : buffer));
 
                     check = IsPortAvailable(LocalIP, port);
 
-                    if (!check) await _netStream.WriteAsync(_encrypted ? _encryptor?.Encrypt(_n) : _n, _cancellationTokenSource.Token);
-                    else await _netStream.WriteAsync(_encrypted ? _encryptor?.Encrypt(_y) : _y, _cancellationTokenSource.Token);
+                    if (!check) await _netStream.WriteAsync(_encrypted ? _encryptor?.Encrypt(_n) : _n, _cancellationToken);
+                    else await _netStream.WriteAsync(_encrypted ? _encryptor?.Encrypt(_y) : _y, _cancellationToken);
                 }
                 while (!check);
 
-                DisposeClient();
+                Dispose();
 
                 await ReceiveTcpClientAsync(LocalIP, port);
                 _netStream = _client?.GetStream();
@@ -137,20 +137,20 @@ namespace P2PShare.Libs
                             bufferSize = Math.Min(_fileTransportBufferSize, fileAndSize.Value - totalBytesRead);
                             buffer = new byte[_encrypted ? bufferSize + _encryptionDataSize : bufferSize];
 
-                            await _netStream!.ReadExactlyAsync(buffer, _cancellationTokenSource.Token);
+                            await _netStream!.ReadExactlyAsync(buffer, _cancellationToken);
 
                             totalBytesRead += _encrypted ? buffer.Length - _encryptionDataSize : buffer.Length;
 
                             OnFilePartTransported(amountOfFiles, i, CalculatePercentage(fileAndSize.Value, totalBytesRead), SendReceive.Receive);
 
-                            await fileStream.WriteAsync(_encrypted ? _encryptionSymmetrical?.Decrypt(buffer) : buffer, _cancellationTokenSource.Token);
+                            await fileStream.WriteAsync(_encrypted ? _encryptionSymmetrical?.Decrypt(buffer) : buffer, _cancellationToken);
                         }
                     }
                 }
             }
             catch (OperationCanceledException)
             {
-                throw new OperationCanceledException();
+                throw;
             }
             catch
             {
@@ -164,7 +164,7 @@ namespace P2PShare.Libs
         {
             try
             {
-                await _netStream!.WriteAsync(_encrypted ? _encryptor?.Encrypt(_n) : _n, _cancellationTokenSource.Token);
+                await _netStream!.WriteAsync(_encrypted ? _encryptor?.Encrypt(_n) : _n, _cancellationToken);
             }
             catch
             {
@@ -182,17 +182,14 @@ namespace P2PShare.Libs
                 listener.Start();
                 do
                 {
-                    client = await listener.AcceptTcpClientAsync(_cancellationTokenSource.Token);
+                    client = await listener.AcceptTcpClientAsync(_cancellationToken);
                 }
                 while (!client.Connected);
             }
-            catch (OperationCanceledException)
+            catch
             {
-                throw new OperationCanceledException();
-            }
-            catch (Exception ex)
-            {
-                throw new Exception(ex.Message);
+                client?.Dispose();
+                throw;
             }
             finally
             {

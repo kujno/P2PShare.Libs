@@ -15,12 +15,14 @@ namespace P2PShare.Libs
         protected static readonly byte[] _y = Encoding.UTF8.GetBytes("y"), _n = Encoding.UTF8.GetBytes("n");
         protected static readonly char _inviteSeparator = ':';
 
-        protected readonly CancellationTokenSource _cancellationTokenSource = new();
+        protected readonly CancellationToken _cancellationToken;
 
         protected TcpClient? _client;
         protected NetworkStream? _netStream;
 
         protected int CalculatePercentage(long fileLength, long bytesProcessed) => (int)((100 / fileLength) * bytesProcessed);
+
+        public ConnectionHandler(CancellationToken cancellationToken) => _cancellationToken = cancellationToken;
 
         protected void OnFilePartTransported(int amountOfFiles, int currentFile, int part, SendReceive sendReceive)
         {
@@ -28,12 +30,6 @@ namespace P2PShare.Libs
         }
 
         public void Dispose()
-        {
-            _cancellationTokenSource?.Dispose();
-            DisposeClient();
-        }
-
-        protected void DisposeClient()
         {
             _netStream?.Dispose();
             _client?.Dispose();
@@ -60,12 +56,6 @@ namespace P2PShare.Libs
                 listener?.Stop();
                 listener?.Dispose();
             }
-        }
-
-        public void Cancel()
-        {
-            _cancellationTokenSource.Cancel();
-            Dispose();
         }
     }
 }

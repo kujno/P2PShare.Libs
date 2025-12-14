@@ -6,7 +6,7 @@ namespace P2PShare.Libs
 {
     public class InterfaceHandling
     {
-        public static NetworkInterface[] GetUpInterfaces()
+        public static NetworkInterface[] GetUpInterfaces() // refactor
         {
             NetworkInterface[] interfaces = NetworkInterface.GetAllNetworkInterfaces()
                 .Where(ni => ni is not null &&
