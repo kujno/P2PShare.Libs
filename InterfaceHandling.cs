@@ -6,7 +6,7 @@ namespace P2PShare.Libs
 {
     public class InterfaceHandling
     {
-        public static NetworkInterface[] GetUpInterfaces() // refactor
+        public static NetworkInterface[] GetUpInterfaces()
         {
             NetworkInterface[] interfaces = NetworkInterface.GetAllNetworkInterfaces()
                 .Where(ni => ni is not null &&
@@ -15,7 +15,7 @@ namespace P2PShare.Libs
                     ni.GetIPProperties().UnicastAddresses.Count > 0)
                 .ToArray();
 
-            if (interfaces.Length == 0) throw new Exception("No network interfaces found"); // not user handled. must be fixed
+            if (interfaces.Length == 0) throw new Exception("No network interfaces found");
 
             return interfaces;
         }
