@@ -34,7 +34,7 @@ namespace P2PShare.Libs
                 _netStream = _client!.GetStream();
 
                 await _netStream.ReadExactlyAsync(encryptionBuffer, _cancellationToken);
-                _encrypted = encryptionBuffer == _y;
+                _encrypted = encryptionBuffer.SequenceEqual(_y);
 
                 if (_encrypted)
                 {
@@ -58,7 +58,7 @@ namespace P2PShare.Libs
 
                     if (read > 0) invite.AddRange(buffer);
                 }
-                while (read > 0);
+                while (read == 0);
                 inviteArr = invite.ToArray();
                 files = Encoding.UTF8.GetString(_encrypted ? _encryptionSymmetrical.Decrypt(inviteArr) : inviteArr);
             }
@@ -82,7 +82,7 @@ namespace P2PShare.Libs
             return _filesAndSizes;
         }
 
-        public async Task<string[]> AcceptFilesAsync(string dictionaryPath)
+        public async Task<string[]> AcceptFilesAsync(string dictionaryPath) // this should throw exception with a message for user
         {
             List<string> savedFiles = new();
 

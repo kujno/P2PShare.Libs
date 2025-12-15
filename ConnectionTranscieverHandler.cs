@@ -67,7 +67,7 @@ namespace P2PShare.Libs
                 await _netStream.WriteAsync(encrypted ? encryption?.Encrypt(bufferSend) : bufferSend, _cancellationToken);
                 await _netStream.ReadExactlyAsync(bufferAsymmetrical, _cancellationToken);
 
-                if ((encrypted ? decryptor?.Decrypt(bufferAsymmetrical) : bufferAsymmetrical) != _y) throw new FileTransportDeniedException("File transport was denied.");
+                if (!(encrypted ? decryptor?.Decrypt(bufferAsymmetrical) : bufferAsymmetrical).SequenceEqual(_y)) throw new FileTransportDeniedException("File transport was denied.");
 
                 do
                 {
@@ -82,7 +82,7 @@ namespace P2PShare.Libs
                     await _netStream.WriteAsync(encrypted ? encryption?.Encrypt(bufferSend) : bufferSend, _cancellationToken);
                     await _netStream.ReadExactlyAsync(bufferAsymmetrical, _cancellationToken);
                 }
-                while ((encrypted ? decryptor?.Decrypt(bufferAsymmetrical) : bufferAsymmetrical) != _y);
+                while (!(encrypted ? decryptor?.Decrypt(bufferAsymmetrical) : bufferAsymmetrical).SequenceEqual(_y));
 
                 Dispose();
 
