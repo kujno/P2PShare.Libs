@@ -29,7 +29,7 @@ namespace P2PShare.Libs
             {
                 byte[] rsaKey = new byte[EncryptionAsymmetrical.GetPublicKeyLength(out modulusLength, out exponentLength)], modulus = new byte[modulusLength], exponent = new byte[exponentLength], encryptionBuffer = new byte[_y.Length], inviteArr;
 
-                await ReceiveTcpClientAsync(LocalIP, _initialPort);
+                _client = await ReceiveTcpClientAsync(LocalIP, _initialPort);
 
                 _netStream = _client!.GetStream();
 
@@ -113,37 +113,40 @@ namespace P2PShare.Libs
 
                 Dispose();
 
-                await ReceiveTcpClientAsync(LocalIP, port);
-                _netStream = _client?.GetStream();
-
-                for (int i = 1; i <= _filesAndSizes.Count; i++)
+                using (_client = await ReceiveTcpClientAsync(LocalIP, port))
                 {
-                    var fileAndSize = _filesAndSizes.ElementAt(i - 1);
-                    string file = fileAndSize.Key, path = $"{dictionaryPath}\\{file}";
-
-                    for (int j = 0; File.Exists(path); j++)
+                    using (_netStream = _client.GetStream())
                     {
-                        file = $"{fileAndSize.Key} ({j})";
-                        path = $"{dictionaryPath}\\{file}";
-                    }
-                    savedFiles.Add(file);
-
-                    using (FileStream fileStream = new(path, FileMode.Create))
-                    {
-                        int totalBytesRead = 0;
-
-                        while (totalBytesRead < fileAndSize.Value)
+                        for (int i = 1; i <= _filesAndSizes.Count; i++)
                         {
-                            bufferSize = Math.Min(_fileTransportBufferSize, fileAndSize.Value - totalBytesRead);
-                            buffer = new byte[_encrypted ? bufferSize + _encryptionDataSize : bufferSize];
+                            var fileAndSize = _filesAndSizes.ElementAt(i - 1);
+                            string file = fileAndSize.Key, path = $"{dictionaryPath}\\{file}";
 
-                            await _netStream!.ReadExactlyAsync(buffer, _cancellationToken);
+                            for (int j = 0; File.Exists(path); j++)
+                            {
+                                file = $"{fileAndSize.Key} ({j})";
+                                path = $"{dictionaryPath}\\{file}";
+                            }
+                            savedFiles.Add(file);
 
-                            totalBytesRead += _encrypted ? buffer.Length - _encryptionDataSize : buffer.Length;
+                            using (FileStream fileStream = new(path, FileMode.Create))
+                            {
+                                int totalBytesRead = 0;
 
-                            OnFilePartTransported(amountOfFiles, i, CalculatePercentage(fileAndSize.Value, totalBytesRead), SendReceive.Receive);
+                                while (totalBytesRead < fileAndSize.Value)
+                                {
+                                    bufferSize = Math.Min(_fileTransportBufferSize, fileAndSize.Value - totalBytesRead);
+                                    buffer = new byte[_encrypted ? bufferSize + _encryptionDataSize : bufferSize];
 
-                            await fileStream.WriteAsync(_encrypted ? _encryptionSymmetrical?.Decrypt(buffer) : buffer, _cancellationToken);
+                                    await _netStream!.ReadExactlyAsync(buffer, _cancellationToken);
+
+                                    totalBytesRead += _encrypted ? buffer.Length - _encryptionDataSize : buffer.Length;
+
+                                    OnFilePartTransported(amountOfFiles, i, CalculatePercentage(fileAndSize.Value, totalBytesRead), SendReceive.Receive);
+
+                                    await fileStream.WriteAsync(_encrypted ? _encryptionSymmetrical?.Decrypt(buffer) : buffer, _cancellationToken);
+                                }
+                            }
                         }
                     }
                 }
@@ -171,33 +174,29 @@ namespace P2PShare.Libs
             }
         }
 
-        private async Task ReceiveTcpClientAsync(IPAddress ip, int port)
+        private async Task<TcpClient> ReceiveTcpClientAsync(IPAddress ip, int port)
         {
-            TcpListener? listener = null;
             TcpClient? client = null;
 
             try
             {
-                listener = new TcpListener(ip, port);
-                listener.Start();
-                do
+                using (TcpListener listener = new(ip, port))
                 {
-                    client = await listener.AcceptTcpClientAsync(_cancellationToken);
+                    listener.Start();
+                    do
+                    {
+                        client = await listener.AcceptTcpClientAsync(_cancellationToken);
+                    }
+                    while (!client.Connected);
                 }
-                while (!client.Connected);
             }
             catch
             {
                 client?.Dispose();
                 throw;
             }
-            finally
-            {
-                listener?.Stop();
-                listener?.Dispose();
-            }
 
-            _client = client;
+            return client;
         }
     }
 }

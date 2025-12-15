@@ -12,7 +12,9 @@ namespace P2PShare.Libs
         public ConnectionTranscieverHandler(CancellationToken cancellationToken) : base(cancellationToken)
         {
         }
-        
+
+        private void OnContacted(IPAddress ip) => Contacted?.Invoke(this, ip);
+
         public async Task SendAsync(IPAddress ipRemote, IPAddress ipLocal, FileInfo[] files, bool encrypted)
         {
             try
@@ -32,7 +34,7 @@ namespace P2PShare.Libs
                 bufferAsymmetrical = new byte[encrypted ? decryptor?.PublicKey.Modulus?.Length ?? throw new ArgumentNullException("Encryption failed.") : _y.Length];
 
                 OnContacted(ipRemote);
-                await ConnectAsync(ipRemote, ipLocal, _initialPort);
+                _client = await ConnectAsync(ipRemote, ipLocal, _initialPort);
                 _netStream = _client!.GetStream();
 
                 if (encrypted)
@@ -84,19 +86,23 @@ namespace P2PShare.Libs
 
                 Dispose();
 
-                await ConnectAsync(ipRemote, ipLocal, port);
-
-                for (int i = 0; i < files.Length; i++)
+                using (_client = await ConnectAsync(ipRemote, ipLocal, port))
                 {
-                    int bytesRead = 0;
-
-                    using (FileStream fileStream = new(files[i].FullName, FileMode.Open))
+                    using (_netStream = _client.GetStream())
                     {
-                        byte[] buffer = new byte[Math.Min(_fileTransportBufferSize, files[i].Length - bytesRead)];
+                        for (int i = 0; i < files.Length; i++)
+                        {
+                            int bytesRead = 0;
 
-                        bytesRead += await fileStream.ReadAsync(buffer, _cancellationToken);
-                        await _netStream.WriteAsync(encrypted ? encryption?.Encrypt(buffer) : buffer, _cancellationToken);
-                        OnFilePartTransported(files.Length, i, CalculatePercentage(files[i].Length, bytesRead), SendReceive.Send);
+                            using (FileStream fileStream = new(files[i].FullName, FileMode.Open))
+                            {
+                                byte[] buffer = new byte[Math.Min(_fileTransportBufferSize, files[i].Length - bytesRead)];
+
+                                bytesRead += await fileStream.ReadAsync(buffer, _cancellationToken);
+                                await _netStream.WriteAsync(encrypted ? encryption?.Encrypt(buffer) : buffer, _cancellationToken);
+                                OnFilePartTransported(files.Length, i, CalculatePercentage(files[i].Length, bytesRead), SendReceive.Send);
+                            }
+                        }
                     }
                 }
             }
@@ -118,13 +124,13 @@ namespace P2PShare.Libs
             }
         }
 
-        private async Task ConnectAsync(IPAddress ipRemote, IPAddress ipLocal, int port)
+        private async Task<TcpClient> ConnectAsync(IPAddress ipRemote, IPAddress ipLocal, int port)
         {
             TcpClient client = new();
 
             try
             {
-                client.Client.Bind(new IPEndPoint(ipLocal, port));
+                client.Client.Bind(new IPEndPoint(ipLocal, 0));
 
                 while (!client.Connected)
                 {
@@ -137,12 +143,7 @@ namespace P2PShare.Libs
                 throw;
             }
 
-            _client = client;
-        }
-
-        private void OnContacted(IPAddress ip)
-        {
-            Contacted?.Invoke(this, ip);
+            return client;
         }
     }
 }

@@ -21,40 +21,29 @@ namespace P2PShare.Libs
         protected NetworkStream? _netStream;
 
         protected int CalculatePercentage(long fileLength, long bytesProcessed) => (int)((100 / fileLength) * bytesProcessed);
-
         public ConnectionHandler(CancellationToken cancellationToken) => _cancellationToken = cancellationToken;
 
-        protected void OnFilePartTransported(int amountOfFiles, int currentFile, int part, SendReceive sendReceive)
-        {
-            FilePartTransported?.Invoke(this, new FilePartTransportedEventArgs(amountOfFiles, currentFile, part, sendReceive));
-        }
+        protected void OnFilePartTransported(int amountOfFiles, int currentFile, int part, SendReceive sendReceive) => FilePartTransported?.Invoke(this, new FilePartTransportedEventArgs(amountOfFiles, currentFile, part, sendReceive));
 
         public void Dispose()
         {
-            _netStream?.Dispose();
             _client?.Dispose();
         }
 
         protected bool IsPortAvailable(IPAddress ip, int port)
         {
-            TcpListener? listener = null;
-
             try
             {
-                listener = new(ip, port);
+                using (TcpListener listener = new(ip, port))
+                {
+                    listener.Start();
 
-                listener.Start();
-
-                return true;
+                    return true;
+                }
             }
             catch
             {
                 return false;
-            }
-            finally
-            {
-                listener?.Stop();
-                listener?.Dispose();
             }
         }
     }
