@@ -50,15 +50,11 @@ namespace P2PShare.Libs
 
                 _filesAndSizes = [];
 
-                do
-                {
-                    byte[] buffer = new byte[_inviteBufferSize];
+                byte[] buffer = new byte[_bufferSize];
 
-                    read = await _netStream!.ReadAsync(buffer, _cancellationToken);
+                read = await _netStream!.ReadAsync(buffer, _cancellationToken);
 
-                    if (read > 0) invite.AddRange(buffer);
-                }
-                while (read == 0);
+                invite.AddRange(buffer);
                 inviteArr = invite.ToArray();
                 files = Encoding.UTF8.GetString(_encrypted ? _encryptionSymmetrical.Decrypt(inviteArr) : inviteArr);
             }
@@ -135,7 +131,7 @@ namespace P2PShare.Libs
 
                                 while (totalBytesRead < fileAndSize.Value)
                                 {
-                                    bufferSize = Math.Min(_fileTransportBufferSize, fileAndSize.Value - totalBytesRead);
+                                    bufferSize = Math.Min(_bufferSize, fileAndSize.Value - totalBytesRead);
                                     buffer = new byte[_encrypted ? bufferSize + _encryptionDataSize : bufferSize];
 
                                     await _netStream!.ReadExactlyAsync(buffer, _cancellationToken);
