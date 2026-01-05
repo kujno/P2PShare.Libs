@@ -116,11 +116,12 @@ namespace P2PShare.Libs
                         for (int i = 1; i <= _filesAndSizes.Count; i++)
                         {
                             var fileAndSize = _filesAndSizes.ElementAt(i - 1);
-                            string file = fileAndSize.Key, path = $"{dictionaryPath}\\{file}";
+                            var dotIndex = fileAndSize.Key.LastIndexOf('.');
+                            string fileName = fileAndSize.Key.Substring(0, dotIndex), fileExt = fileAndSize.Key.Substring(dotIndex + 1), file = $"{fileName}.{fileExt}", path = $"{dictionaryPath}\\{file}";
 
                             for (int j = 0; File.Exists(path); j++)
                             {
-                                file = $"{fileAndSize.Key} ({j})";
+                                file = $"{fileName}({j}).{fileExt}";
                                 path = $"{dictionaryPath}\\{file}";
                             }
                             savedFiles.Add(file);
