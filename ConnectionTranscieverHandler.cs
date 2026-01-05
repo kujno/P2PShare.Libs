@@ -26,12 +26,12 @@ namespace P2PShare.Libs
                 Random random = new();
                 byte[] bufferSend;
                 byte[] bufferAsymmetrical;
-                int port;
+                int port, modulusLength, publicKeyLength = EncryptionAsymmetrical.GetPublicKeyLength(out modulusLength, out _);
                 string invite = String.Empty;
 
                 if (encrypted) decryptor = new();
 
-                bufferAsymmetrical = new byte[encrypted ? EncryptionAsymmetrical.GetPublicKeyLength(out _, out _) : _y.Length];
+                bufferAsymmetrical = new byte[encrypted ? modulusLength : _y.Length];
 
                 OnContacted(ipRemote);
                 _client = await ConnectAsync(ipRemote, ipLocal, _initialPort);
@@ -43,7 +43,7 @@ namespace P2PShare.Libs
                     await _netStream.WriteAsync(_y, _cancellationToken);
 
                     // send public key
-                    await _netStream.WriteAsync(decryptor!.PublicKey.Modulus!.Concat(decryptor.PublicKey.Exponent!).ToArray(), 0, EncryptionAsymmetrical.GetPublicKeyLength(out _, out _), _cancellationToken);
+                    await _netStream.WriteAsync(decryptor!.PublicKey.Modulus!.Concat(decryptor.PublicKey.Exponent!).ToArray(), 0, publicKeyLength, _cancellationToken);
 
                     // receive aes key
                     await _netStream.ReadExactlyAsync(bufferAsymmetrical, _cancellationToken);
