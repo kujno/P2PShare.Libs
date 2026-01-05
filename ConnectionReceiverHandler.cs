@@ -54,7 +54,7 @@ namespace P2PShare.Libs
 
                 read = await _netStream!.ReadAsync(buffer, _cancellationToken);
 
-                invite.AddRange(buffer);
+                invite.AddRange(buffer[0..read]);
                 inviteArr = invite.ToArray();
                 files = Encoding.UTF8.GetString(_encrypted ? _encryptionSymmetrical.Decrypt(inviteArr) : inviteArr);
             }
