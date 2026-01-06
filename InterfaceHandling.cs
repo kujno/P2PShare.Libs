@@ -1,70 +1,29 @@
-﻿using System.Net.NetworkInformation;
+﻿using System.Net;
+using System.Net.NetworkInformation;
+using System.Net.Sockets;
 
 namespace P2PShare.Libs
 {
     public class InterfaceHandling
     {
-        public static event EventHandler? InterfaceDown;
-
-        public static List<NetworkInterface> GetUpInterfaces()
+        public static NetworkInterface[] GetUpInterfaces()
         {
-            NetworkInterface[] interfacesAll = NetworkInterface.GetAllNetworkInterfaces();
-            List<NetworkInterface> interfacesUp = new List<NetworkInterface>();
-
-            if (interfacesAll.Length.Equals(0)) throw new Exception("No network interfaces found"); // not user handled. must be fixed
-
-            NetworkInterface[] interfaces = interfacesAll.Where(ni => ni != null).Cast<NetworkInterface>().ToArray();
-
-            foreach (NetworkInterface ni in interfaces)
-            {
-                string description = ni.Description.ToLowerInvariant();
-                string id = ni.Id.ToLowerInvariant();
-                bool isVirtual =
-                    //description.Contains("virtual") ||
-                    //description.Contains("vmware") ||
-                    //description.Contains("hyper-v") ||
-                    description.Contains("loopback") //||
-                    //description.Contains("tunnel") ||
-                    //description.Contains("pseudo") ||
-                    //id.Contains("virtual") ||
-                    //id.Contains("vmware") ||
-                    //id.Contains("hyper-v")
-                    ;
-
-                if (
+            NetworkInterface[] interfaces = NetworkInterface.GetAllNetworkInterfaces()
+                .Where(ni => ni is not null &&
                     ni.OperationalStatus == OperationalStatus.Up &&
                     ni.NetworkInterfaceType != NetworkInterfaceType.Loopback &&
-                    //ni.NetworkInterfaceType != NetworkInterfaceType.Tunnel &&
-                    !isVirtual &&
-                    ni.GetIPProperties().UnicastAddresses.Count > 0
-                ) interfacesUp.Add(ni);
-            }
+                    ni.GetIPProperties().UnicastAddresses.Count > 0)
+                .ToArray();
 
-            return interfacesUp;
+            if (interfaces.Length == 0) throw new Exception("No network interfaces found");
+
+            return interfaces;
         }
 
-        public static async Task MonitorInterface(NetworkInterface @interface, Cancellation cancellation)
+        public static IPAddress? GetLocalIP(NetworkInterface @interface)
         {
-            try
-            {
-                while (@interface.OperationalStatus == OperationalStatus.Up)
-                {
-                    if (cancellation.TokenSource is null || cancellation.TokenSource.Token.IsCancellationRequested) return;
-
-                    await Task.Delay(1000);
-                }
-            }
-            catch
-            {
-
-            }
-
-            OnInterfaceDown();
-        }
-
-        private static void OnInterfaceDown()
-        {
-            InterfaceDown?.Invoke(null, EventArgs.Empty);
+            foreach (var ip in @interface.GetIPProperties().UnicastAddresses) if (ip.Address.AddressFamily == AddressFamily.InterNetwork) return ip.Address;
+            return null;
         }
     }
 }
