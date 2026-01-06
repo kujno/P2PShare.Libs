@@ -24,7 +24,7 @@ namespace P2PShare.Libs
                 EncryptionSymmetrical? encryption = null;
                 DecryptorAsymmetrical? decryptor = null;
                 Random random = new();
-                byte[] bufferSend;
+                byte[] bufferSend, bufferSendLength;
                 byte[] bufferAsymmetrical;
                 int port, modulusLength, publicKeyLength = EncryptionAsymmetrical.GetPublicKeyLength(out modulusLength, out _);
                 string invite = String.Empty;
@@ -62,9 +62,17 @@ namespace P2PShare.Libs
                 }
 
                 bufferSend = Encoding.UTF8.GetBytes(invite.Trim());
+                if (encrypted) bufferSend = encryption!.Encrypt(bufferSend);
+                bufferSendLength = Encoding.UTF8.GetBytes(bufferSend.Length.ToString());
+
+                // send invite length
+                await _netStream.WriteAsync(encrypted ? encryption?.Encrypt(bufferSendLength) : bufferSendLength, _cancellationToken);
+
+                // ack
+                await _netStream.ReadExactlyAsync(new byte[_y.Length], _cancellationToken);
 
                 // send invite
-                await _netStream.WriteAsync(encrypted ? encryption?.Encrypt(bufferSend) : bufferSend, _cancellationToken);
+                await _netStream.WriteAsync(bufferSend, _cancellationToken);
                 await _netStream.ReadExactlyAsync(bufferAsymmetrical, _cancellationToken);
 
                 if (!(encrypted ? decryptor?.Decrypt(bufferAsymmetrical) : bufferAsymmetrical).SequenceEqual(_y)) throw new FileTransportDeniedException("File transport was denied.");

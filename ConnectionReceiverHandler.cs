@@ -7,6 +7,8 @@ namespace P2PShare.Libs
 {
     public class ConnectionReceiverHandler : ConnectionHandler
     {
+        public static string InviteErrorMessage { get; } = "Receiving invite failed.";
+
         private EncryptorAsymmetrical? _encryptor;
         private EncryptionSymmetrical? _encryptionSymmetrical;
         private Dictionary<string, long>? _filesAndSizes;
@@ -16,7 +18,7 @@ namespace P2PShare.Libs
 
         public ConnectionReceiverHandler(IPAddress localIP, CancellationToken cancellationToken) : base(cancellationToken) => LocalIP = localIP;
 
-        public async Task<Dictionary<string, long>> ReceiveInviteAsync() // should also return if its encrypted
+        public async Task<Dictionary<string, long>> ReceiveInviteAsync()
         {
             int modulusLength, exponentLength, read;
             var files = String.Empty;
@@ -27,7 +29,8 @@ namespace P2PShare.Libs
 
             try
             {
-                byte[] rsaKey = new byte[EncryptionAsymmetrical.GetPublicKeyLength(out modulusLength, out exponentLength)], modulus = new byte[modulusLength], exponent = new byte[exponentLength], encryptionBuffer = new byte[_y.Length], inviteArr;
+                byte inviteLength;
+                byte[] rsaKey = new byte[EncryptionAsymmetrical.GetPublicKeyLength(out modulusLength, out exponentLength)], modulus = new byte[modulusLength], exponent = new byte[exponentLength], encryptionBuffer = new byte[_y.Length], buffer = new byte[1024];
 
                 _client = await ReceiveTcpClientAsync(LocalIP, _initialPort);
 
@@ -48,15 +51,20 @@ namespace P2PShare.Libs
                     await _netStream.WriteAsync(_encryptor.Encrypt(_encryptionSymmetrical.Key), _cancellationToken);
                 }
 
-                _filesAndSizes = [];
-
-                byte[] buffer = new byte[_bufferSize];
-
+                // receive invite length
                 read = await _netStream!.ReadAsync(buffer, _cancellationToken);
 
-                invite.AddRange(buffer[0..read]);
-                inviteArr = invite.ToArray();
-                files = Encoding.UTF8.GetString(_encrypted ? _encryptionSymmetrical.Decrypt(inviteArr) : inviteArr);
+                // ack
+                await _netStream.WriteAsync(_y, _cancellationToken);
+
+                buffer = buffer[0..read];
+                if (_encrypted) buffer = _encryptionSymmetrical.Decrypt(buffer);
+                if (!byte.TryParse(Encoding.UTF8.GetString(buffer), out inviteLength)) throw new();
+
+                // receive invite
+                await _netStream!.ReadExactlyAsync(buffer = new byte[inviteLength], _cancellationToken);
+
+                files = Encoding.UTF8.GetString(_encrypted ? _encryptionSymmetrical.Decrypt(buffer) : buffer);
             }
             catch (OperationCanceledException)
             {
@@ -64,10 +72,11 @@ namespace P2PShare.Libs
             }
             catch
             {
-                throw new Exception("Receiving invite failed.");
+                throw new Exception(InviteErrorMessage);
             }
 
             filesSplit = files.Split(FileSeparator);
+            _filesAndSizes = [];
             foreach (var file in filesSplit)
             {
                 var index = file.IndexOf(_inviteSeparator);
@@ -78,7 +87,7 @@ namespace P2PShare.Libs
             return _filesAndSizes;
         }
 
-        public async Task<string[]> AcceptFilesAsync(string dictionaryPath) // this should throw exception with a message for user
+        public async Task<string[]> AcceptFilesAsync(string dictionaryPath)
         {
             List<string> savedFiles = new();
 
