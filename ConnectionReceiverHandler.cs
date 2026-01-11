@@ -130,7 +130,7 @@ namespace P2PShare.Libs
 
                             for (int j = 0; File.Exists(path); j++)
                             {
-                                file = $"{fileName}({j}).{fileExt}";
+                                file = $"{fileName} ({j}).{fileExt}";
                                 path = $"{dictionaryPath}\\{file}";
                             }
                             savedFiles.Add(file);
