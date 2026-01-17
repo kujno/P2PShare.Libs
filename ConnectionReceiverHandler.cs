@@ -23,7 +23,6 @@ namespace P2PShare.Libs
             int modulusLength, exponentLength, read;
             var files = String.Empty;
             string[] filesSplit;
-            List<byte> invite = new();
 
             _encryptionSymmetrical = new();
 
