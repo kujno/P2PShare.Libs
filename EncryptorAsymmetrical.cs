@@ -10,10 +10,6 @@ namespace P2PShare.Libs
             _publicKey.Exponent = exponent;
         }
 
-        public EncryptorAsymmetrical()
-        {
-        }
-
         public byte[] Encrypt(byte[] originalData)
         {
             byte[] encryptedData;
