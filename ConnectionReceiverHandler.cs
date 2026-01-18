@@ -7,7 +7,7 @@ namespace P2PShare.Libs
 {
     public class ConnectionReceiverHandler : ConnectionHandler
     {
-        public static string InviteErrorMessage { get; } = "Receiving invite failed.";
+       
 
         private EncryptorAsymmetrical? _encryptor;
         private EncryptionSymmetrical? _encryptionSymmetrical;

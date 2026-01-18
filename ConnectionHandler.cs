@@ -9,11 +9,12 @@ namespace P2PShare.Libs
     {
         public static event EventHandler<FilePartTransportedEventArgs>? FilePartTransported;
 
+        public static string InviteErrorMessage { get; } = "Receiving invite failed.";
         public static char FileSeparator { get; } = '|';
 
         protected int _publicKeyLength, _modulusLength, _exponentLength;
 
-        private static readonly int _encryptionDataSize = EncryptionSymmetrical.TagSize + EncryptionSymmetrical.NonceSize, _initialPort = 57001, _bufferSize = 8192;
+        private static readonly int _encryptionDataSize = EncryptionSymmetrical.TagSize + EncryptionSymmetrical.NonceSize, _initialPort = 57001, _initialServerPort = _initialPort + 1, _bufferSize = 8192;
         private static readonly byte[] _y = Encoding.UTF8.GetBytes("y"), _n = Encoding.UTF8.GetBytes("n");
         private static readonly char _inviteSeparator = ':';
 
@@ -22,9 +23,9 @@ namespace P2PShare.Libs
 
         private TcpClient? _client;
         private NetworkStream? _netStream;
-        private DecryptorAsymmetrical? _decryptor;
-        private EncryptorAsymmetrical? _encryptor;
-        private bool _encrypted;
+        private DecryptorAsymmetrical? _decryptorAsymmetrical;
+        private EncryptorAsymmetrical? _encryptorAsymmetrical;
+        private EncryptionSymmetrical? _encryptionSymmetrical;
 
         protected int CalculatePercentage(long fileLength, long bytesProcessed) => (int)((100 / fileLength) * bytesProcessed);
 
@@ -58,20 +59,20 @@ namespace P2PShare.Libs
 
         protected async Task SendEncryptionStatusAsync(bool encrypted) => await _netStream!.WriteAsync(encrypted ? _y : _n, _cancellationToken);
 
-        protected async Task ReceiveEncryptionStatusAsync()
+        protected async Task<bool> ReceiveEncryptionStatusAsync()
         {
             byte[] buffer = new byte[_y.Length];
 
             await _netStream!.ReadExactlyAsync(buffer, _cancellationToken);
 
-            _encrypted = buffer.SequenceEqual(_y);
+            return buffer.SequenceEqual(_y);
         }
 
         protected async Task SendPublicKeyAsync()
         {
-            _decryptor = new();
+            _decryptorAsymmetrical = new();
 
-            await _netStream!.WriteAsync(_decryptor.PublicKey.Modulus!.Concat(_decryptor.PublicKey.Exponent!).ToArray(), _cancellationToken);
+            await _netStream!.WriteAsync(_decryptorAsymmetrical.PublicKey.Modulus!.Concat(_decryptorAsymmetrical.PublicKey.Exponent!).ToArray(), _cancellationToken);
         }
 
         protected async Task ReceivePublicKeyAsync()
@@ -80,190 +81,132 @@ namespace P2PShare.Libs
 
             await _netStream!.ReadExactlyAsync(buffer, _cancellationToken);
 
-            _encryptor = new(buffer[0.._modulusLength], buffer[_modulusLength.._exponentLength]);
+            _encryptorAsymmetrical = new(buffer[0.._modulusLength], buffer[_modulusLength.._exponentLength]);
         }
-        
-        public async Task SendAsync(IPAddress ipRemote, IPAddress ipLocal, FileInfo[] files, bool encrypted)
+
+        protected async Task SendSymmetricalKeyAsync() => await _netStream!.WriteAsync(_encryptorAsymmetrical!.Encrypt((_encryptionSymmetrical = (new EncryptionSymmetrical())).Key), _cancellationToken);
+
+        protected async Task ReceiveSymmetricalKeyAsync()
         {
-            try
+            byte[] buffer = new byte[_modulusLength];
+
+            await _netStream!.ReadExactlyAsync(buffer, _cancellationToken);
+
+            _encryptionSymmetrical = new(_decryptorAsymmetrical!.Decrypt(buffer));
+        }
+
+        protected async Task<bool> SendInviteAsync(FileInfo[] files, bool encrypted)
+        {
+            byte[] bufferInvite, bufferInviteLength, bufferResponse = GetResponseBuffer(encrypted);
+            string invite = String.Empty;
+
+            for (int i = 0; i < files.Length; i++)
             {
-                if (!files.All(x => x.Exists)) throw new FileNotFoundException("One or more files to send were not found.");
+                var file = files[i];
 
-                EncryptionSymmetrical? encryption = null;
-                DecryptorAsymmetrical? decryptor = null;
-                Random random = new();
-                byte[] bufferSend, bufferSendLength;
-                byte[] bufferAsymmetrical;
-                int port, modulusLength, publicKeyLength = EncryptionAsymmetrical.GetPublicKeyLength(out modulusLength, out _);
-                string invite = String.Empty;
+                invite += $"{file.Name}{_inviteSeparator}{file.Length}";
+                if (i < files.Length - 1) invite += FileSeparator;
+            }
 
-                if (encrypted) decryptor = new();
+            bufferInvite = Encoding.UTF8.GetBytes(invite.Trim());
+            if (encrypted) bufferInvite = _encryptionSymmetrical!.Encrypt(bufferInvite);
+            bufferInviteLength = Encoding.UTF8.GetBytes(bufferInvite.Length.ToString());
 
-                bufferAsymmetrical = new byte[encrypted ? modulusLength : _y.Length];
+            // send invite length
+            await _netStream!.WriteAsync(encrypted ? _encryptionSymmetrical?.Encrypt(bufferInviteLength) : bufferInviteLength, _cancellationToken);
 
-                if (encrypted)
-                {
-                    // send encryption status
-                    await _netStream.WriteAsync(_y, _cancellationToken);
+            // ack
+            await _netStream.ReadExactlyAsync(bufferResponse, _cancellationToken);
 
-                    // send public key
-                    
+            // send invite
+            await _netStream.WriteAsync(bufferInvite, _cancellationToken);
 
-                    // receive aes key
-                    await _netStream.ReadExactlyAsync(bufferAsymmetrical, _cancellationToken);
+            // receive response
+            await _netStream.ReadExactlyAsync(bufferResponse, _cancellationToken);
 
-                    encryption = new(decryptor.Decrypt(bufferAsymmetrical));
-                }
-                // send encryption status
-                else await _netStream.WriteAsync(_n, _cancellationToken);
+            return IsResponseY(bufferResponse, encrypted);
+        }
 
-                for (int i = 0; i < files.Length; i++) // todo: check if invite is not too long
-                {
-                    var file = files[i];
+        protected async Task SendPortAsync(bool encrypted)
+        {
+            Random random = new();
+            byte[] bufferPort, bufferResponse = GetResponseBuffer(encrypted);
+            int port;
 
-                    invite += $"{file.Name}{_inviteSeparator}{file.Length}";
-                    if (i < files.Length - 1) invite += FileSeparator;
-                }
-
-                bufferSend = Encoding.UTF8.GetBytes(invite.Trim());
-                if (encrypted) bufferSend = encryption!.Encrypt(bufferSend);
-                bufferSendLength = Encoding.UTF8.GetBytes(bufferSend.Length.ToString());
-
-                // send invite length
-                await _netStream.WriteAsync(encrypted ? encryption?.Encrypt(bufferSendLength) : bufferSendLength, _cancellationToken);
-
-                // ack
-                await _netStream.ReadExactlyAsync(new byte[_y.Length], _cancellationToken);
-
-                // send invite
-                await _netStream.WriteAsync(bufferSend, _cancellationToken);
-                await _netStream.ReadExactlyAsync(bufferAsymmetrical, _cancellationToken);
-
-                if (!(encrypted ? decryptor?.Decrypt(bufferAsymmetrical) : bufferAsymmetrical).SequenceEqual(_y)) throw new FileTransportDeniedException("File transport was denied.");
-
+            do
+            {
                 do
                 {
-                    do
-                    {
-                        port = random.Next(49152, 65536);
-                    }
-                    while (!IsPortAvailable(ipLocal, port));
-
-                    bufferSend = Encoding.UTF8.GetBytes(port.ToString());
-
-                    await _netStream.WriteAsync(encrypted ? encryption?.Encrypt(bufferSend) : bufferSend, _cancellationToken);
-                    await _netStream.ReadExactlyAsync(bufferAsymmetrical, _cancellationToken);
+                    port = random.Next(49152, 65536);
                 }
-                while (!(encrypted ? decryptor?.Decrypt(bufferAsymmetrical) : bufferAsymmetrical).SequenceEqual(_y));
+                while (port != _initialPort && port != _initialServerPort && !IsPortAvailable(_ipLocal, port));
 
-                Dispose();
+                bufferPort = Encoding.UTF8.GetBytes(port.ToString());
 
-                using (_client = await ConnectAsync(ipRemote, ipLocal, port))
+                await _netStream!.WriteAsync(encrypted ? _encryptionSymmetrical?.Encrypt(bufferPort) : bufferPort, _cancellationToken);
+                await _netStream.ReadExactlyAsync(bufferResponse, _cancellationToken);
+            }
+            while (!IsResponseY(bufferResponse, encrypted));
+        }
+
+        protected async Task SendFilesAsync(FileInfo[] files, bool encrypted)
+        {
+            for (int i = 0; i < files.Length; i++)
+            {
+                using (FileStream fileStream = new(files[i].FullName, FileMode.Open))
                 {
-                    using (_netStream = _client.GetStream())
+                    for (int j = 0; j < files[i].Length;)
                     {
-                        for (int i = 0; i < files.Length; i++)
-                        {
-                            using (FileStream fileStream = new(files[i].FullName, FileMode.Open))
-                            {
-                                for (int j = 0; j < files[i].Length;)
-                                {
-                                    byte[] buffer = new byte[Math.Min(_bufferSize, files[i].Length - j)];
+                        byte[] buffer = new byte[Math.Min(_bufferSize, files[i].Length - j)];
 
-                                    j += await fileStream.ReadAsync(buffer, _cancellationToken);
-                                    await _netStream.WriteAsync(encrypted ? encryption?.Encrypt(buffer) : buffer, _cancellationToken);
-                                    OnFilePartTransported(files.Length, i + 1, CalculatePercentage(files[i].Length, j), SendReceive.Send);
-                                }
-                            }
-                        }
+                        j += await fileStream.ReadAsync(buffer, _cancellationToken);
+                        await _netStream!.WriteAsync(encrypted ? _encryptionSymmetrical?.Encrypt(buffer) : buffer, _cancellationToken);
+                        OnFilePartTransported(files.Length, i + 1, CalculatePercentage(files[i].Length, j), SendReceive.Send);
                     }
                 }
-            }
-            // refactor this
-            catch (OperationCanceledException)
-            {
-                throw;
-            }
-            catch (FileNotFoundException)
-            {
-                throw;
-            }
-            catch (FileTransportDeniedException)
-            {
-                throw;
-            }
-            catch
-            {
-                throw new Exception("Sending file(s) failed.");
             }
         }
 
-        public async Task<Dictionary<string, long>> ReceiveInviteAsync()
+        private byte[] GetResponseBuffer(bool encrypted) => new byte[encrypted ? _modulusLength : _y.Length];
+
+        private bool IsResponseY(byte[] response, bool encrypted) => (encrypted ? _encryptionSymmetrical?.Decrypt(response) : response).SequenceEqual(_y);
+
+        protected async Task<T> ReceiveInviteAsync<T>(bool encrypted)
         {
-            int modulusLength, exponentLength, read;
-            var files = String.Empty;
+            if (typeof(T) != typeof(string[]) && typeof(T) != typeof(Dictionary<string, long>)) throw new NotImplementedException();
+
+            int read;
+            byte inviteLength;
             string[] filesSplit;
+            byte[] buffer = new byte[_bufferSize];
+            Dictionary<string, long> filesAndSizes;
 
-            _encryptionSymmetrical = new();
+            // receive invite length
+            read = await _netStream!.ReadAsync(buffer, _cancellationToken);
 
-            try
-            {
-                byte inviteLength;
-                byte[] rsaKey = new byte[EncryptionAsymmetrical.GetPublicKeyLength(out modulusLength, out exponentLength)], modulus = new byte[modulusLength], exponent = new byte[exponentLength], encryptionBuffer = new byte[_y.Length], buffer = new byte[1024];
+            // ack
+            await _netStream.WriteAsync(encrypted ? _encryptionSymmetrical?.Encrypt(_y) : _y, _cancellationToken);
 
-                _client = await ReceiveTcpClientAsync(LocalIP, _initialPort);
+            buffer = buffer[0..read];
+            if (encrypted) buffer = _encryptionSymmetrical!.Decrypt(buffer);
+            if (!byte.TryParse(Encoding.UTF8.GetString(buffer), out inviteLength)) throw new FormatException(InviteErrorMessage);
 
-                _netStream = _client!.GetStream();
+            // receive invite
+            await _netStream!.ReadExactlyAsync(buffer = new byte[inviteLength], _cancellationToken);
 
-                await _netStream.ReadExactlyAsync(encryptionBuffer, _cancellationToken);
-                _encrypted = encryptionBuffer.SequenceEqual(_y);
+            filesSplit = Encoding.UTF8.GetString(encrypted ? _encryptionSymmetrical!.Decrypt(buffer) : buffer).Split(FileSeparator);
 
-                if (_encrypted)
-                {
-                    await _netStream.ReadExactlyAsync(rsaKey, _cancellationToken);
+            if (typeof(T) == typeof(string[])) return (T)(object)filesSplit;
 
-                    Array.Copy(rsaKey, 0, modulus, 0, modulusLength);
-                    Array.Copy(rsaKey, modulusLength, exponent, 0, exponentLength);
-
-                    _encryptor = new(modulus, exponent);
-
-                    await _netStream.WriteAsync(_encryptor.Encrypt(_encryptionSymmetrical.Key), _cancellationToken);
-                }
-
-                // receive invite length
-                read = await _netStream!.ReadAsync(buffer, _cancellationToken);
-
-                // ack
-                await _netStream.WriteAsync(_y, _cancellationToken);
-
-                buffer = buffer[0..read];
-                if (_encrypted) buffer = _encryptionSymmetrical.Decrypt(buffer);
-                if (!byte.TryParse(Encoding.UTF8.GetString(buffer), out inviteLength)) throw new();
-
-                // receive invite
-                await _netStream!.ReadExactlyAsync(buffer = new byte[inviteLength], _cancellationToken);
-
-                files = Encoding.UTF8.GetString(_encrypted ? _encryptionSymmetrical.Decrypt(buffer) : buffer);
-            }
-            catch (OperationCanceledException)
-            {
-                throw;
-            }
-            catch
-            {
-                throw new Exception(InviteErrorMessage);
-            }
-
-            filesSplit = files.Split(FileSeparator);
-            _filesAndSizes = [];
+            filesAndSizes = [];
             foreach (var file in filesSplit)
             {
                 var index = file.IndexOf(_inviteSeparator);
 
-                _filesAndSizes[file.Substring(0, index)] = long.Parse(file.Substring(index + 1));
+                filesAndSizes[file.Substring(0, index)] = long.Parse(file.Substring(index + 1));
             }
 
-            return _filesAndSizes;
+            return (T)(object)filesAndSizes;
         }
 
         public async Task<string[]> AcceptFilesAsync(string dictionaryPath)
@@ -279,7 +222,7 @@ namespace P2PShare.Libs
 
                 buffer = new byte[_encrypted ? bufferSize + _encryptionDataSize : bufferSize];
 
-                await _netStream!.WriteAsync(_encrypted ? _encryptor?.Encrypt(_y) : _y, _cancellationToken);
+                await _netStream!.WriteAsync(_encrypted ? _encryptorAsymmetrical?.Encrypt(_y) : _y, _cancellationToken);
 
                 // receive port number
                 do
@@ -290,8 +233,8 @@ namespace P2PShare.Libs
 
                     check = IsPortAvailable(LocalIP, port);
 
-                    if (!check) await _netStream.WriteAsync(_encrypted ? _encryptor?.Encrypt(_n) : _n, _cancellationToken);
-                    else await _netStream.WriteAsync(_encrypted ? _encryptor?.Encrypt(_y) : _y, _cancellationToken);
+                    if (!check) await _netStream.WriteAsync(_encrypted ? _encryptorAsymmetrical?.Encrypt(_n) : _n, _cancellationToken);
+                    else await _netStream.WriteAsync(_encrypted ? _encryptorAsymmetrical?.Encrypt(_y) : _y, _cancellationToken);
                 }
                 while (!check);
 
@@ -352,7 +295,7 @@ namespace P2PShare.Libs
         {
             try
             {
-                await _netStream!.WriteAsync(_encrypted ? _encryptor?.Encrypt(_n) : _n, _cancellationToken);
+                await _netStream!.WriteAsync(_encrypted ? _encryptorAsymmetrical?.Encrypt(_n) : _n, _cancellationToken);
             }
             catch
             {
