@@ -31,7 +31,7 @@ namespace P2PShare.Libs
 
         public void Dispose() => _client?.Dispose();
 
-        protected ConnectionHandler(CancellationToken cancellationToken, IPAddress ipRemote, IPAddress ipLocal)
+        protected ConnectionHandler(IPAddress ipRemote, IPAddress ipLocal, CancellationToken cancellationToken)
         {
             _cancellationToken = cancellationToken;
             _ipRemote = ipRemote;
