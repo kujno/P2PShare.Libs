@@ -12,20 +12,34 @@ namespace P2PShare.Libs
         public static string InviteErrorMessage { get; } = "Receiving invite failed.";
         public static char FileSeparator { get; } = '|';
 
+        protected static readonly int _initialPort = 57001, _initialServerPort = _initialPort + 1;
+
         protected int _publicKeyLength, _modulusLength, _exponentLength;
 
-        private static readonly int _encryptionDataSize = EncryptionSymmetrical.TagSize + EncryptionSymmetrical.NonceSize, _initialPort = 57001, _initialServerPort = _initialPort + 1, _bufferSize = 8192;
+        protected readonly IPAddress _ipRemote;
+
+        private static readonly int _encryptionDataSize = EncryptionSymmetrical.TagSize + EncryptionSymmetrical.NonceSize, _bufferSize = 8192;
         private static readonly byte[] _y = Encoding.UTF8.GetBytes("y"), _n = Encoding.UTF8.GetBytes("n");
         private static readonly char _inviteSeparator = ':';
 
         private readonly CancellationToken _cancellationToken;
-        private readonly IPAddress _ipRemote, _ipLocal;
+        private readonly IPAddress _ipLocal;
 
         private TcpClient? _client;
         private NetworkStream? _netStream;
         private DecryptorAsymmetrical? _decryptorAsymmetrical;
         private EncryptorAsymmetrical? _encryptorAsymmetrical;
         private EncryptionSymmetrical? _encryptionSymmetrical;
+
+        protected TcpClient Client
+        {
+            get => _client!;
+            set
+            {
+                _client = value;
+                _netStream = _client.GetStream();
+            }
+        }
 
         protected int CalculatePercentage(long fileLength, long bytesProcessed) => (int)((100 / fileLength) * bytesProcessed);
 
@@ -36,6 +50,7 @@ namespace P2PShare.Libs
             _cancellationToken = cancellationToken;
             _ipRemote = ipRemote;
             _ipLocal = ipLocal;
+            _publicKeyLength = EncryptionAsymmetrical.GetPublicKeyLength(out _modulusLength, out _exponentLength);
         }
 
         protected void OnFilePartTransported(int amountOfFiles, int currentFile, int part, SendReceive sendReceive) => FilePartTransported?.Invoke(this, new FilePartTransportedEventArgs(amountOfFiles, currentFile, part, sendReceive));
@@ -104,15 +119,15 @@ namespace P2PShare.Libs
             await _netStream!.WriteAsync(encrypted ? _encryptionSymmetrical?.Encrypt(bufferInviteLength) : bufferInviteLength, _cancellationToken);
 
             // ack
-            await YNRespondReceive(encrypted);
+            await YNReceiveAsync(encrypted);
 
             // send invite
             await _netStream.WriteAsync(bufferInvite, _cancellationToken);
 
-            return await YNRespondReceive(encrypted);
+            return await YNReceiveAsync(encrypted);
         }
 
-        protected async Task SendPortAsync(bool encrypted)
+        protected async Task<int> SendPortAsync(bool encrypted)
         {
             Random random = new();
             byte[] bufferPort;
@@ -130,7 +145,9 @@ namespace P2PShare.Libs
 
                 await _netStream!.WriteAsync(encrypted ? _encryptionSymmetrical?.Encrypt(bufferPort) : bufferPort, _cancellationToken);
             }
-            while (!await YNRespondReceive(encrypted));
+            while (!await YNReceiveAsync(encrypted));
+
+            return port;
         }
 
         protected async Task<int> ReceivePortAsync(bool encrypted)
@@ -148,7 +165,7 @@ namespace P2PShare.Libs
 
                 check = IsPortAvailable(_ipLocal, port);
 
-                await YNRespond(check, encrypted);
+                await YNSendAsync(check, encrypted);
             }
             while (!check);
 
@@ -173,16 +190,16 @@ namespace P2PShare.Libs
             }
         }
 
-        protected async Task YNRespond(bool response, bool encrypted)
+        protected async Task YNSendAsync(bool encrypted, bool yn)
         {
-            byte[] responseBuffer = response ? _y : _n;
+            byte[] responseBuffer = yn ? _y : _n;
 
             await _netStream!.WriteAsync(encrypted ? _encryptionSymmetrical?.Encrypt(responseBuffer) : responseBuffer, _cancellationToken);
         }
 
-        protected async Task YNRespond(bool encrypted) => await YNRespond(true, encrypted);
+        protected async Task YNSendAsync(bool encrypted) => await YNSendAsync(true, encrypted);
 
-        protected async Task<bool> YNRespondReceive(bool encrypted)
+        protected async Task<bool> YNReceiveAsync(bool encrypted)
         {
             var buffer = new byte[encrypted ? _y.Length + _encryptionDataSize : _y.Length];
 
@@ -205,7 +222,7 @@ namespace P2PShare.Libs
             read = await _netStream!.ReadAsync(buffer, _cancellationToken);
 
             // ack
-            await YNRespond(encrypted);
+            await YNSendAsync(encrypted);
 
             buffer = buffer[0..read];
             if (encrypted) buffer = _encryptionSymmetrical!.Decrypt(buffer);
@@ -273,33 +290,33 @@ namespace P2PShare.Libs
             {
                 throw;
             }
-            catch
+            catch (Exception ex)
             {
-                throw new Exception("Receiving file(s) failed.");
+                throw new Exception("Receiving file(s) failed.", ex);
             }
 
             return savedFiles.ToArray();
         }
 
-        protected async Task ReceiveTcpClientAsync(IPAddress ip, int port)
+        protected async Task<TcpClient> ReceiveTcpClientAsync(IPAddress ip, int port)
         {
             using (TcpListener listener = new(ip, port))
             {
                 listener.Start();
 
-                _client = await listener.AcceptTcpClientAsync(_cancellationToken);
+                return await listener.AcceptTcpClientAsync(_cancellationToken);
             }
         }
-
-        protected async Task ConnectAsync(int port, bool connectingToServer)
+        
+        protected async Task<TcpClient> ConnectAsync(int port, bool connectingToServer)
         {
+            TcpClient client = new();
 
             try
             {
                 bool connected;
 
-                _client = new();
-                _client.Client.Bind(new IPEndPoint(_ipLocal, 0));
+                client.Client.Bind(new IPEndPoint(_ipLocal, 0));
 
                 using (var timer = connectingToServer ? Task.Run(async () => await Task.Delay(10000)) : null)
                 {
@@ -307,9 +324,9 @@ namespace P2PShare.Libs
                     {
                         try
                         {
-                            await _client.ConnectAsync(_ipRemote, port, _cancellationToken);
+                            await client.ConnectAsync(_ipRemote, port, _cancellationToken);
 
-                            connected = _client.Connected;
+                            connected = client.Connected;
                         }
                         catch
                         {
@@ -319,13 +336,13 @@ namespace P2PShare.Libs
                     while (!connected && (!timer?.IsCompleted ?? false));
                 }
             }
-            catch
+            catch (Exception ex)
             {
-                _client?.Dispose();
-                throw;
+                client.Dispose();
+                throw new ConnectionFailedException("Could not connect.", ex);
             }
 
-            _netStream = _client.GetStream();
+            return client;
         }
     }
 }
