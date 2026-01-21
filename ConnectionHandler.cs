@@ -15,14 +15,13 @@ namespace P2PShare.Libs
         protected static readonly int _initialPort = 57001, _initialServerPort = _initialPort + 1;
 
         protected int _publicKeyLength, _modulusLength, _exponentLength;
-
-        protected readonly IPAddress _ipRemote, _ipLocal;
+        protected IPAddress? _ipLocal, _ipRemote;
 
         private static readonly int _encryptionDataSize = EncryptionSymmetrical.TagSize + EncryptionSymmetrical.NonceSize, _bufferSize = 8192;
         private static readonly byte[] _y = Encoding.UTF8.GetBytes("y"), _n = Encoding.UTF8.GetBytes("n");
         private static readonly char _inviteSeparator = ':';
 
-        private readonly CancellationToken _cancellationToken;
+        private CancellationToken _cancellationToken;
 
         private TcpClient? _client;
         private NetworkStream? _netStream;
@@ -44,11 +43,18 @@ namespace P2PShare.Libs
 
         public void Dispose() => _client?.Dispose();
 
-        protected ConnectionHandler(IPAddress ipRemote, IPAddress ipLocal, CancellationToken cancellationToken)
+        protected ConnectionHandler(IPAddress ipLocal, CancellationToken cancellationToken) => AssignCompulsoryFields(ipLocal, cancellationToken);
+
+        protected ConnectionHandler(IPAddress ipLocal, IPAddress ipRemote, CancellationToken cancellationToken)
         {
-            _cancellationToken = cancellationToken;
+            AssignCompulsoryFields(ipLocal, cancellationToken);
             _ipRemote = ipRemote;
+        }
+
+        private void AssignCompulsoryFields(IPAddress ipLocal, CancellationToken cancellationToken)
+        {
             _ipLocal = ipLocal;
+            _cancellationToken = cancellationToken;
             _publicKeyLength = EncryptionAsymmetrical.GetPublicKeyLength(out _modulusLength, out _exponentLength);
         }
 
@@ -138,7 +144,7 @@ namespace P2PShare.Libs
                 {
                     port = random.Next(49152, 65536);
                 }
-                while (!IsPortAvailable(_ipLocal, port));
+                while (!IsPortAvailable(_ipLocal!, port));
 
                 bufferPort = Encoding.UTF8.GetBytes(port.ToString());
 
@@ -162,7 +168,7 @@ namespace P2PShare.Libs
 
                 port = int.Parse(Encoding.UTF8.GetString(encrypted ? _encryptionSymmetrical!.Decrypt(buffer) : buffer));
 
-                check = IsPortAvailable(_ipLocal, port);
+                check = IsPortAvailable(_ipLocal!, port);
 
                 await YNSendAsync(check, encrypted);
             }
@@ -315,7 +321,7 @@ namespace P2PShare.Libs
             {
                 bool connected;
 
-                client.Client.Bind(new IPEndPoint(_ipLocal, 0));
+                client.Client.Bind(new IPEndPoint(_ipLocal!, 0));
 
                 using (var timer = connectingToServer ? Task.Run(async () => await Task.Delay(10000)) : null)
                 {
@@ -323,7 +329,7 @@ namespace P2PShare.Libs
                     {
                         try
                         {
-                            await client.ConnectAsync(_ipRemote, port, _cancellationToken);
+                            await client.ConnectAsync(_ipRemote!, port, _cancellationToken);
 
                             connected = client.Connected;
                         }
