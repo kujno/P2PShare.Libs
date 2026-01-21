@@ -16,14 +16,13 @@ namespace P2PShare.Libs
 
         protected int _publicKeyLength, _modulusLength, _exponentLength;
 
-        protected readonly IPAddress _ipRemote;
+        protected readonly IPAddress _ipRemote, _ipLocal;
 
         private static readonly int _encryptionDataSize = EncryptionSymmetrical.TagSize + EncryptionSymmetrical.NonceSize, _bufferSize = 8192;
         private static readonly byte[] _y = Encoding.UTF8.GetBytes("y"), _n = Encoding.UTF8.GetBytes("n");
         private static readonly char _inviteSeparator = ':';
 
         private readonly CancellationToken _cancellationToken;
-        private readonly IPAddress _ipLocal;
 
         private TcpClient? _client;
         private NetworkStream? _netStream;
