@@ -306,7 +306,7 @@ namespace P2PShare.Libs
                 return await listener.AcceptTcpClientAsync(_cancellationToken);
             }
         }
-        
+
         protected async Task<TcpClient> ConnectAsync(int port, bool connectingToServer)
         {
             TcpClient client = new();
