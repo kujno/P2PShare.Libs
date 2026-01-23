@@ -202,7 +202,7 @@ namespace P2PShare.Libs
             await _netStream!.WriteAsync(encrypted ? _encryptionSymmetrical?.Encrypt(responseBuffer) : responseBuffer, _cancellationToken);
         }
 
-        protected async Task YNSendAsync(bool encrypted) => await YNSendAsync(true, encrypted);
+        protected async Task YNSendAsync(bool encrypted) => await YNSendAsync(encrypted, true);
 
         protected async Task<bool> YNReceiveAsync(bool encrypted)
         {
