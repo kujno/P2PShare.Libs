@@ -170,7 +170,7 @@ namespace P2PShare.Libs
 
                 check = IsPortAvailable(_ipLocal!, port);
 
-                await YNSendAsync(check, encrypted);
+                await YNSendAsync(encrypted, check);
             }
             while (!check);
 
