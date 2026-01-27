@@ -85,7 +85,7 @@ namespace P2PShare.Libs
 
             await _netStream!.ReadExactlyAsync(buffer, _cancellationToken);
 
-            _encryptorAsymmetrical = new(buffer[0.._modulusLength], buffer[_modulusLength.._exponentLength]);
+            _encryptorAsymmetrical = new(buffer[0.._modulusLength], buffer[_modulusLength..(_modulusLength + _exponentLength)]);
 
             await _netStream!.WriteAsync(_encryptorAsymmetrical!.Encrypt((_encryptionSymmetrical = new EncryptionSymmetrical()).Key), _cancellationToken);
         }
