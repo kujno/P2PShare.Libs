@@ -39,7 +39,7 @@ namespace P2PShare.Libs
             }
         }
 
-        protected int CalculatePercentage(long fileLength, long bytesProcessed) => (int)((100 / fileLength) * bytesProcessed);
+        protected int CalculatePercentage(long fileLength, long bytesProcessed) => (int)(100 * bytesProcessed / fileLength);
 
         public void Dispose() => _client?.Dispose();
 
@@ -183,7 +183,7 @@ namespace P2PShare.Libs
             {
                 using (FileStream fileStream = new(files[i].FullName, FileMode.Open))
                 {
-                    for (int j = 0; j < files[i].Length;)
+                    for (long j = 0; j < files[i].Length;)
                     {
                         byte[] buffer = new byte[Math.Min(_bufferSize, files[i].Length - j)];
 
@@ -271,7 +271,7 @@ namespace P2PShare.Libs
 
                     using (FileStream fileStream = new(path, FileMode.Create))
                     {
-                        var totalBytesRead = 0;
+                        long totalBytesRead = 0;
 
                         while (totalBytesRead < fileAndSize.Value)
                         {
