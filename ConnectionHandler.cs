@@ -181,8 +181,20 @@ namespace P2PShare.Libs
         {
             for (int i = 0; i < files.Length; i++)
             {
-                using (FileStream fileStream = new(files[i].FullName, FileMode.Open))
+                FileStream? fileStream = null;
+
+
+                try
                 {
+                    try
+                    {
+                        fileStream = new(files[i].FullName, FileMode.Open);
+                    }
+                    catch (Exception ex)
+                    {
+                        throw new CouldNotOpenFileException($"Couldn't open: {files[i].Name}.", ex);
+                    }
+
                     for (long j = 0; j < files[i].Length;)
                     {
                         byte[] buffer = new byte[Math.Min(_bufferSize, files[i].Length - j)];
@@ -191,6 +203,14 @@ namespace P2PShare.Libs
                         await _netStream!.WriteAsync(encrypted ? _encryptionSymmetrical?.Encrypt(buffer) : buffer, _cancellationToken);
                         OnFilePartTransported(files.Length, i + 1, CalculatePercentage(files[i].Length, j), SendReceive.Send);
                     }
+                }
+                catch
+                {
+                    throw;
+                }
+                finally
+                {
+                    fileStream?.Dispose();
                 }
             }
         }
@@ -254,6 +274,7 @@ namespace P2PShare.Libs
         protected async Task<string[]> ReceiveFilesAsync(Dictionary<string, long> filesAndSizes, string dictionaryPath, bool encrypted)
         {
             List<string> savedFiles = new();
+            FileStream? fileStream = null;
 
             try
             {
@@ -261,6 +282,7 @@ namespace P2PShare.Libs
                 {
                     var fileAndSize = filesAndSizes.ElementAt(i - 1);
                     var dotIndex = fileAndSize.Key.LastIndexOf('.');
+                    long totalBytesRead = 0;
                     string fileName = fileAndSize.Key.Substring(0, dotIndex), fileExt = fileAndSize.Key.Substring(dotIndex + 1), file = $"{fileName}.{fileExt}", path = $"{dictionaryPath}\\{file}";
 
                     for (int j = 0; File.Exists(path); j++)
@@ -269,35 +291,39 @@ namespace P2PShare.Libs
                         path = $"{dictionaryPath}\\{file}";
                     }
 
-                    using (FileStream fileStream = new(path, FileMode.Create))
+                    try
                     {
-                        long totalBytesRead = 0;
+                        fileStream = new(path, FileMode.Create);
+                    }
+                    catch (Exception ex)
+                    {
+                        throw new CouldNotOpenFileException($"Couldn't create file in the desired folder.", ex);
+                    }
 
-                        while (totalBytesRead < fileAndSize.Value)
-                        {
-                            var bufferSize = Math.Min(_bufferSize, fileAndSize.Value - totalBytesRead);
-                            var buffer = new byte[encrypted ? bufferSize + _encryptionDataSize : bufferSize];
+                    while (totalBytesRead < fileAndSize.Value)
+                    {
+                        var bufferSize = Math.Min(_bufferSize, fileAndSize.Value - totalBytesRead);
+                        var buffer = new byte[encrypted ? bufferSize + _encryptionDataSize : bufferSize];
 
-                            await _netStream!.ReadExactlyAsync(buffer, _cancellationToken);
+                        await _netStream!.ReadExactlyAsync(buffer, _cancellationToken);
 
-                            totalBytesRead += encrypted ? buffer.Length - _encryptionDataSize : buffer.Length;
+                        totalBytesRead += encrypted ? buffer.Length - _encryptionDataSize : buffer.Length;
 
-                            OnFilePartTransported(filesAndSizes.Count, i, CalculatePercentage(fileAndSize.Value, totalBytesRead), SendReceive.Receive);
+                        OnFilePartTransported(filesAndSizes.Count, i, CalculatePercentage(fileAndSize.Value, totalBytesRead), SendReceive.Receive);
 
-                            await fileStream.WriteAsync(encrypted ? _encryptionSymmetrical?.Decrypt(buffer) : buffer, _cancellationToken);
-                        }
+                        await fileStream.WriteAsync(encrypted ? _encryptionSymmetrical?.Decrypt(buffer) : buffer, _cancellationToken);
                     }
 
                     savedFiles.Add(file);
                 }
             }
-            catch (OperationCanceledException)
-            {
-                throw;
-            }
             catch (Exception ex)
             {
-                throw new Exception("Receiving file(s) failed.", ex);
+                throw ex is OperationCanceledException || ex is CouldNotOpenFileException ? ex : new Exception("Receiving file(s) failed.", ex);
+            }
+            finally
+            {
+                fileStream?.Dispose();
             }
 
             return savedFiles.ToArray();
