@@ -11,19 +11,19 @@ namespace P2PShare.Libs
 
         public static string InviteErrorMessage { get; } = "Receiving invite failed.";
         public static char FileSeparator { get; } = '|';
+        public static char InviteSeparator { get; } = ':';
+
 
         public required IPAddress IPLocal { get; init; }
         public required CancellationToken CancellationToken { get; init; }
 
         protected static readonly int _initialPort = 57001, _initialServerPort = _initialPort + 1;
 
-        protected int _publicKeyLength, _modulusLength, _exponentLength;
+        protected int _publicKeyLength, _modulusLength, _exponentLength, _encryptionDataSize = EncryptionSymmetrical.TagSize + EncryptionSymmetrical.NonceSize, _bufferSize = 8192;
         protected NetworkStream? _netStream;
         protected IPAddress? _ipRemote;
 
-        private static readonly int _encryptionDataSize = EncryptionSymmetrical.TagSize + EncryptionSymmetrical.NonceSize, _bufferSize = 8192;
         private static readonly byte[] _y = Encoding.UTF8.GetBytes("y"), _n = Encoding.UTF8.GetBytes("n");
-        private static readonly char _inviteSeparator = ':';
 
         private TcpClient? _client;
         private DecryptorAsymmetrical? _decryptorAsymmetrical;
@@ -109,7 +109,7 @@ namespace P2PShare.Libs
             {
                 var file = files[i];
 
-                invite += $"{file.Name}{_inviteSeparator}{file.Length}";
+                invite += $"{file.Name}{InviteSeparator}{file.Length}";
                 if (i < files.Length - 1) invite += FileSeparator;
             }
 
@@ -260,12 +260,27 @@ namespace P2PShare.Libs
             filesAndSizes = [];
             foreach (var file in filesSplit)
             {
-                var index = file.IndexOf(_inviteSeparator);
+                var index = file.IndexOf(InviteSeparator);
 
                 filesAndSizes[file.Substring(0, index)] = long.Parse(file.Substring(index + 1));
             }
 
             return (T)(object)filesAndSizes;
+        }
+
+        public async Task<string> ReceiveRequest(bool encrypted)
+        {
+            var buffer = new byte[_bufferSize];
+            // receive request length
+            var read = await _netStream!.ReadAsync(buffer, CancellationToken);
+
+            // ack
+            await YNSendAsync(encrypted);
+
+            buffer = buffer[0..read];
+            if (encrypted) buffer = _encryptionSymmetrical!.Decrypt(buffer);
+
+            await _netStream!.ReadExactlyAsync(buffer = new byte[inviteLength], CancellationToken);
         }
 
         protected async Task<string[]> ReceiveFilesAsync(Dictionary<string, long> filesAndSizes, string dictionaryPath, bool encrypted)
