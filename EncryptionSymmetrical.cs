@@ -9,18 +9,18 @@ namespace P2PShare.Libs
 
         private static readonly byte _keySize = 32;
 
-        public byte[] Key { get; } = new byte[_keySize];
+        public byte[] Key { get; }
         
         private byte[]? _oldNonce;
 
-        public EncryptionSymmetrical(byte[] key)
+        public EncryptionSymmetrical(byte[]? key = null)
         {
-            Key = key;
-        }
-
-        public EncryptionSymmetrical()
-        {
-            RandomNumberGenerator.Fill(Key);
+            if (key is not null) Key = key;
+            else
+            {
+                Key = new byte[_keySize];
+                RandomNumberGenerator.Fill(Key);
+            }  
         }
 
         public byte[] Encrypt(byte[] data)
