@@ -5,18 +5,11 @@ namespace P2PShare.Libs
     public abstract class EncryptionAsymmetrical
     {
         protected static int _dwKeySize = 2048;
-        protected RSAParameters _publicKey;
-        public RSAParameters PublicKey
-        {
-            get
-            {
-                return _publicKey;
-            }
-        }
+        protected RSAParameters _publicKey = new();
+        public RSAParameters PublicKey { get => _publicKey; }
 
         protected EncryptionAsymmetrical()
         {
-            _publicKey = new();
         }
 
         public static int GetPublicKeyLength(out int modulusLength, out int exponentLength)
