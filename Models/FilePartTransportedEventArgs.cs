@@ -2,17 +2,9 @@
 {
     public class FilePartTransportedEventArgs : EventArgs
     {
-        public int AmountOfFiles { get; }
-        public int CurrentFile { get; }
-        public int Part { get; }
-        public SendReceive SendReceive { get; }
-
-        public FilePartTransportedEventArgs(int amountOfFiles, int currentFile, int part, SendReceive sendReceive)
-        {
-            AmountOfFiles = amountOfFiles;
-            CurrentFile = currentFile;
-            Part = part;
-            SendReceive = sendReceive;
-        }
+        public required int AmountOfFiles { get; init; }
+        public required int CurrentFile { get; init; }
+        public required int Part { get; init; }
+        public required SendReceive SendReceive { get; init; }
     }
 }

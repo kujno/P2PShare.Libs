@@ -12,8 +12,6 @@ namespace P2PShare.Libs
         public static string InviteErrorMessage { get; } = "Receiving invite failed.";
         public static char FileSeparator { get; } = '|';
 
-        public IPAddress? IPRemote { get; init; }
-
         public required IPAddress IPLocal { get; init; }
         public required CancellationToken CancellationToken { get; init; }
 
@@ -21,6 +19,7 @@ namespace P2PShare.Libs
 
         protected int _publicKeyLength, _modulusLength, _exponentLength;
         protected NetworkStream? _netStream;
+        protected IPAddress? _ipRemote;
 
         private static readonly int _encryptionDataSize = EncryptionSymmetrical.TagSize + EncryptionSymmetrical.NonceSize, _bufferSize = 8192;
         private static readonly byte[] _y = Encoding.UTF8.GetBytes("y"), _n = Encoding.UTF8.GetBytes("n");
@@ -47,7 +46,16 @@ namespace P2PShare.Libs
 
         public void Dispose() => _client?.Dispose();
 
-        protected void OnFilePartTransported(int amountOfFiles, int currentFile, int part, SendReceive sendReceive) => FilePartTransported?.Invoke(this, new FilePartTransportedEventArgs(amountOfFiles, currentFile, part, sendReceive));
+        protected void OnFilePartTransported(int amountOfFiles, int currentFile, int part, SendReceive sendReceive)
+        {
+            FilePartTransported?.Invoke(this, new FilePartTransportedEventArgs() 
+            {
+                AmountOfFiles = amountOfFiles,
+                CurrentFile = currentFile,
+                Part = part,
+                SendReceive = sendReceive
+            });
+        }
 
         protected bool IsPortAvailable(IPAddress ip, int port)
         {
@@ -344,7 +352,7 @@ namespace P2PShare.Libs
                     {
                         try
                         {
-                            await client.ConnectAsync(IPRemote!, port, CancellationToken);
+                            await client.ConnectAsync(_ipRemote!, port, CancellationToken);
 
                             connected = client.Connected;
                         }
