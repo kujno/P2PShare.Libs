@@ -234,26 +234,18 @@ namespace P2PShare.Libs
         {
             if (typeof(T) != typeof(string[]) && typeof(T) != typeof(Dictionary<string, long>)) throw new NotImplementedException();
 
-            int read;
-            byte inviteLength;
             string[] filesSplit;
             byte[] buffer = new byte[_bufferSize];
             Dictionary<string, long> filesAndSizes;
 
-            // receive invite length
-            read = await _netStream!.ReadAsync(buffer, CancellationToken);
-
-            // ack
-            await YNSendAsync(encrypted);
-
-            buffer = buffer[0..read];
-            if (encrypted) buffer = _encryptionSymmetrical!.Decrypt(buffer);
-            if (!byte.TryParse(Encoding.UTF8.GetString(buffer), out inviteLength)) throw new FormatException(InviteErrorMessage);
-
-            // receive invite
-            await _netStream!.ReadExactlyAsync(buffer = new byte[inviteLength], CancellationToken);
-
-            filesSplit = Encoding.UTF8.GetString(encrypted ? _encryptionSymmetrical!.Decrypt(buffer) : buffer).Split(FileSeparator);
+            try
+            {
+                filesSplit = (await ReceiveRequestAsync(encrypted)).Split(FileSeparator);
+            }
+            catch (Exception ex)
+            {
+                throw new FormatException(InviteErrorMessage, ex);
+            }
 
             if (typeof(T) == typeof(string[])) return (T)(object)filesSplit;
 
@@ -268,8 +260,9 @@ namespace P2PShare.Libs
             return (T)(object)filesAndSizes;
         }
 
-        public async Task<string> ReceiveRequest(bool encrypted)
+        public async Task<string> ReceiveRequestAsync(bool encrypted)
         {
+            byte inviteLength;
             var buffer = new byte[_bufferSize];
             // receive request length
             var read = await _netStream!.ReadAsync(buffer, CancellationToken);
@@ -279,8 +272,10 @@ namespace P2PShare.Libs
 
             buffer = buffer[0..read];
             if (encrypted) buffer = _encryptionSymmetrical!.Decrypt(buffer);
-
+            if (!byte.TryParse(Encoding.UTF8.GetString(buffer), out inviteLength)) throw new FormatException();
             await _netStream!.ReadExactlyAsync(buffer = new byte[inviteLength], CancellationToken);
+
+            return Encoding.UTF8.GetString(encrypted ? _encryptionSymmetrical!.Decrypt(buffer) : buffer);
         }
 
         protected async Task<string[]> ReceiveFilesAsync(Dictionary<string, long> filesAndSizes, string dictionaryPath, bool encrypted)
