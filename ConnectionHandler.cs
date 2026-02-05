@@ -260,7 +260,7 @@ namespace P2PShare.Libs
             return (T)(object)filesAndSizes;
         }
 
-        public async Task<string> ReceiveRequestAsync(bool encrypted)
+        protected async Task<string> ReceiveRequestAsync(bool encrypted)
         {
             byte inviteLength;
             var buffer = new byte[_bufferSize];
