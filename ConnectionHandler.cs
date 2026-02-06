@@ -12,14 +12,14 @@ namespace P2PShare.Libs
         public static string InviteErrorMessage { get; } = "Receiving invite failed.";
         public static char FileSeparator { get; } = '|';
         public static char InviteSeparator { get; } = ':';
-
+        public static int BufferSize { get; } = 8192;
 
         public required IPAddress IPLocal { get; init; }
         public required CancellationToken CancellationToken { get; init; }
 
         protected static readonly int _initialPort = 57001, _initialServerPort = _initialPort + 1;
 
-        protected int _publicKeyLength, _modulusLength, _exponentLength, _encryptionDataSize = EncryptionSymmetrical.TagSize + EncryptionSymmetrical.NonceSize, _bufferSize = 8192;
+        protected int _publicKeyLength, _modulusLength, _exponentLength, _encryptionDataSize = EncryptionSymmetrical.TagSize + EncryptionSymmetrical.NonceSize;
         protected NetworkStream? _netStream;
         protected IPAddress? _ipRemote;
 
@@ -194,7 +194,7 @@ namespace P2PShare.Libs
 
                     for (long j = 0; j < files[i].Length;)
                     {
-                        byte[] buffer = new byte[Math.Min(_bufferSize, files[i].Length - j)];
+                        byte[] buffer = new byte[Math.Min(BufferSize, files[i].Length - j)];
 
                         j += await fileStream.ReadAsync(buffer, CancellationToken);
                         await _netStream!.WriteAsync(encrypted ? _encryptionSymmetrical?.Encrypt(buffer) : buffer, CancellationToken);
@@ -235,7 +235,7 @@ namespace P2PShare.Libs
             if (typeof(T) != typeof(string[]) && typeof(T) != typeof(Dictionary<string, long>)) throw new NotImplementedException();
 
             string[] filesSplit;
-            byte[] buffer = new byte[_bufferSize];
+            byte[] buffer = new byte[BufferSize];
             Dictionary<string, long> filesAndSizes;
 
             try
@@ -263,7 +263,7 @@ namespace P2PShare.Libs
         protected async Task<string> ReceiveRequestAsync(bool encrypted)
         {
             byte inviteLength;
-            var buffer = new byte[_bufferSize];
+            var buffer = new byte[BufferSize];
             // receive request length
             var read = await _netStream!.ReadAsync(buffer, CancellationToken);
 
@@ -309,7 +309,7 @@ namespace P2PShare.Libs
 
                     while (totalBytesRead < fileAndSize.Value)
                     {
-                        var bufferSize = Math.Min(_bufferSize, fileAndSize.Value - totalBytesRead);
+                        var bufferSize = Math.Min(BufferSize, fileAndSize.Value - totalBytesRead);
                         var buffer = new byte[encrypted ? bufferSize + _encryptionDataSize : bufferSize];
 
                         await _netStream!.ReadExactlyAsync(buffer, CancellationToken);
