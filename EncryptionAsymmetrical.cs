@@ -39,9 +39,9 @@ namespace P2PShare.Libs
 
             using (RSACryptoServiceProvider rsa = new RSACryptoServiceProvider(_dwKeySize))
             {
-                // public key
+                // verjeny kluc
                 parameters[0] = rsa.ExportParameters(false);
-                //private key
+                // sukromny kluc
                 parameters[1] = rsa.ExportParameters(true);
             }
 
