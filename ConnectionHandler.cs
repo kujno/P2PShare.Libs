@@ -117,13 +117,13 @@ namespace P2PShare.Libs
             if (encrypted) bufferInvite = _encryptionSymmetrical!.Encrypt(bufferInvite);
             bufferInviteLength = Encoding.UTF8.GetBytes(bufferInvite.Length.ToString());
 
-            // send invite length
+            // Poslanie dĺžky pozvánky.
             await _netStream!.WriteAsync(encrypted ? _encryptionSymmetrical?.Encrypt(bufferInviteLength) : bufferInviteLength, CancellationToken);
 
-            // ack
+            // Odozva.
             await YNReceiveAsync(encrypted);
 
-            // send invite
+            // Poslanie pozvánky.
             await _netStream.WriteAsync(bufferInvite, CancellationToken);
 
             return await YNReceiveAsync(encrypted);
@@ -264,10 +264,10 @@ namespace P2PShare.Libs
         {
             byte inviteLength;
             var buffer = new byte[BufferSize];
-            // receive request length
+            // Prijatie dĺžky žiadosti.
             var read = await _netStream!.ReadAsync(buffer, CancellationToken);
 
-            // ack
+            // Poslatie odozvy.
             await YNSendAsync(encrypted);
 
             buffer = buffer[0..read];
