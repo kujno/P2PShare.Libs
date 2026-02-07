@@ -1,4 +1,5 @@
-﻿using P2PShare.Libs.Models;
+﻿using P2PShare.Libs.Encryption;
+using P2PShare.Libs.Models;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
@@ -260,7 +261,7 @@ namespace P2PShare.Libs
             return (T)(object)filesAndSizes;
         }
 
-        protected async Task<string> ReceiveRequestAsync(bool encrypted)
+        public async Task<string> ReceiveRequestAsync(bool encrypted)
         {
             byte inviteLength;
             var buffer = new byte[BufferSize];
