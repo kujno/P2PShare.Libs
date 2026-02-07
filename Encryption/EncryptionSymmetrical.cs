@@ -1,6 +1,6 @@
 ﻿using System.Security.Cryptography;
 
-namespace P2PShare.Libs
+namespace P2PShare.Libs.Encryption
 {
     public class EncryptionSymmetrical
     {
