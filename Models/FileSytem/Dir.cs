@@ -8,13 +8,13 @@ namespace P2PShare.Libs.Models.FileSytem
         public List<Fil>? Fils { get; }
         public List<Dir>? Dirs { get; }
 
-        public Dir(string name)
+        public Dir(string path)
         {
-            DirectoryInfo dirInfo = new(name);
+            DirectoryInfo dirInfo = new(path);
             FileInfo[] files;
             DirectoryInfo[] directories;
 
-            Name = name;
+            Name = dirInfo.Name;
 
             if ((files = dirInfo.GetFiles()).Length > 0)
             {
@@ -31,20 +31,16 @@ namespace P2PShare.Libs.Models.FileSytem
             {
                 Dirs = [];
 
-                Array.ForEach(directories, x => Dirs.Add(new($"{Name}\\{x.Name}")));
+                Array.ForEach(directories, x => Dirs.Add(new(x.FullName)));
             }
         }
 
         [JsonConstructor]
-        public Dir(string name, Fil[]? files, Dir[]? dirs)
+        public Dir(string name, Fil[]? fils, Dir[]? dirs)
         {
             Name = name;
-            Fils = files?.ToList();
+            Fils = fils?.ToList();
             Dirs = dirs?.ToList();
         }
-
-        public string ToJSON() => JsonConvert.SerializeObject(this, SerializationSettings.Settings);
-
-        public static Dir Deserialize(string json) => JsonConvert.DeserializeObject<Dir>(json, SerializationSettings.Settings) ?? throw new FormatException("Couldn't deserialize dir json.");
     }
 }
