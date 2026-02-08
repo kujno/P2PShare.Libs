@@ -25,13 +25,13 @@ namespace P2PShare.Libs
         protected int _publicKeyLength, _modulusLength, _exponentLength, _encryptionDataSize = EncryptionSymmetrical.TagSize + EncryptionSymmetrical.NonceSize;
         protected NetworkStream? _netStream;
         protected IPAddress? _ipRemote;
+        protected EncryptionSymmetrical? _encryptionSymmetrical;
 
         private static readonly byte[] _y = Encoding.UTF8.GetBytes("y"), _n = Encoding.UTF8.GetBytes("n");
 
         private TcpClient? _client;
         private DecryptorAsymmetrical? _decryptorAsymmetrical;
         private EncryptorAsymmetrical? _encryptorAsymmetrical;
-        private EncryptionSymmetrical? _encryptionSymmetrical;
 
         protected TcpClient Client
         {
