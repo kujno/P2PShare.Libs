@@ -17,7 +17,7 @@ namespace P2PShare.Libs.Models
                     {
                         ContractResolver = new CamelCasePropertyNamesContractResolver(),
                         Formatting = Formatting.Indented,
-                        NullValueHandling = NullValueHandling.Ignore,
+                        NullValueHandling = NullValueHandling.Ignore
                     };
                 }
 
