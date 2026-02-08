@@ -13,8 +13,8 @@ namespace P2PShare.Libs.Models
         public long FileSize { get; init; }
         public bool Encrypted { get; init; }
 
-        public static Request Create(string requestJSON) => JsonConvert.DeserializeObject<Request>(requestJSON)!;
+        public static Request Create(string requestJSON) => JsonConvert.DeserializeObject<Request>(requestJSON, SerializationSettings.Settings)!;
 
-        public string ToJSON() => JsonConvert.SerializeObject(this);
+        public string ToJSON() => JsonConvert.SerializeObject(this, SerializationSettings.Settings);
     }
 }
