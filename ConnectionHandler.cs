@@ -1,5 +1,7 @@
-﻿using P2PShare.Libs.Encryption;
+﻿using P2PShare.Libs.Encryption.Asymmetrical;
+using P2PShare.Libs.Encryption.Symmetrical;
 using P2PShare.Libs.Models;
+using P2PShare.Libs.Models.Exceptions;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
@@ -49,7 +51,7 @@ namespace P2PShare.Libs
 
         protected void OnFilePartTransported(int amountOfFiles, int currentFile, int part, SendReceive sendReceive)
         {
-            FilePartTransported?.Invoke(this, new FilePartTransportedEventArgs() 
+            FilePartTransported?.Invoke(this, new FilePartTransportedEventArgs()
             {
                 AmountOfFiles = amountOfFiles,
                 CurrentFile = currentFile,
