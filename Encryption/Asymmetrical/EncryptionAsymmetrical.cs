@@ -6,11 +6,8 @@ namespace P2PShare.Libs.Encryption.Asymmetrical
     {
         protected static int _dwKeySize = 2048;
         protected RSAParameters _publicKey = new();
-        public RSAParameters PublicKey { get => _publicKey; }
 
-        protected EncryptionAsymmetrical()
-        {
-        }
+        public RSAParameters PublicKey { get => _publicKey; }
 
         public static int GetPublicKeyLength(out int modulusLength, out int exponentLength)
         {
@@ -50,7 +47,9 @@ namespace P2PShare.Libs.Encryption.Asymmetrical
 
         public static bool IsPublicKeyNull(RSAParameters key)
         {
-            return key.Modulus is null || key.Exponent is null ? true : false;
+            return key.Modulus is null || key.Exponent is null
+                ? true
+                : false;
         }
     }
 }
