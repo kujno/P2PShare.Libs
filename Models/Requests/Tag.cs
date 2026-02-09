@@ -1,4 +1,4 @@
-﻿namespace P2PShare.Libs.Models
+﻿namespace P2PShare.Libs.Models.Requests
 {
     public enum Tag
     {
