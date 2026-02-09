@@ -51,7 +51,7 @@ namespace P2PShare.Libs
 
         protected void OnFilePartTransported(int amountOfFiles, int currentFile, int part, SendReceive sendReceive)
         {
-            FilePartTransported?.Invoke(this, new FilePartTransportedEventArgs()
+            FilePartTransported?.Invoke(this, new()
             {
                 AmountOfFiles = amountOfFiles,
                 CurrentFile = currentFile,
