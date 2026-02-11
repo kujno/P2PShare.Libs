@@ -1,4 +1,5 @@
 ﻿using Newtonsoft.Json;
+using P2PShare.Libs.Models.FileSytem;
 
 namespace P2PShare.Libs.Models.Requests
 {
@@ -11,6 +12,8 @@ namespace P2PShare.Libs.Models.Requests
         public string? Password { get; init; }
         public string? FileName { get; init; }
         public long FileSize { get; init; }
+        public Unit Unit { get; init; }
+        public bool My { get; init; }
         public bool Encrypted { get; init; }
 
         public static Request Create(string requestJSON) => JsonConvert.DeserializeObject<Request>(requestJSON, SerializationSettings.Settings)!;
