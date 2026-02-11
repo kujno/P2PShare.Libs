@@ -4,5 +4,7 @@
     {
         public required string Name { get; init; }
         public required long Size { get; init; }
+        public required bool CanDelete { get; init; }
+        public required bool CanRename { get; init; }
     }
 }

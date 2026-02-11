@@ -7,6 +7,8 @@ namespace P2PShare.Libs.Models.FileSytem
         public string Name { get; }
         public List<Fil>? Fils { get; }
         public List<Dir>? Dirs { get; }
+        public bool CanDelete { get; }
+        public bool CanRename { get; }
 
         public Dir(string path)
         {
