@@ -38,7 +38,7 @@ namespace P2PShare.Libs.Models.FileSytem
         }
 
         [JsonConstructor]
-        public Dir(string name, Fil[]? fils, Dir[]? dirs)
+        public Dir(string name, Fil[]? fils = null, Dir[]? dirs = null)
         {
             Name = name;
             Fils = fils?.ToList();
