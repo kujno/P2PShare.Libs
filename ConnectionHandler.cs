@@ -215,7 +215,7 @@ namespace P2PShare.Libs
             }
         }
 
-        protected async Task YNSendAsync(bool encrypted, bool yn)
+        public async Task YNSendAsync(bool encrypted, bool yn)
         {
             byte[] responseBuffer = yn ? _y : _n;
 
