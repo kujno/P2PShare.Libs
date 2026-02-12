@@ -11,6 +11,7 @@ namespace P2PShare.Libs.Models.Requests
         public string? Username { get; init; }
         public string? Password { get; init; }
         public string? FileName { get; init; }
+        public long FileSize { get; init; }
         public Unit Unit { get; init; }
         public bool My { get; init; }
         public bool Encrypted { get; init; }
