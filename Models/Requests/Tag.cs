@@ -6,6 +6,8 @@
         Register,
         Get,
         Download,
-        Upload
+        Upload,
+        Rename,
+        Delete
     }
 }
