@@ -2,12 +2,14 @@
 
 namespace P2PShare.Libs.Models.FileSytem
 {
-    public class UserFiles
+    public class AllUserInfo
     {
         public required Dir MyDir { get; init; }
+        public required string[] Users { get; init; }
         
         public Dir[]? SharedDirs { get; init; }
         public Fil[]? SharedFils { get; init; }
+        public string[]? UserGroups { get; init; }
 
         public string ToJSON() => JsonConvert.SerializeObject(this, SerializationSettings.Settings);
 
