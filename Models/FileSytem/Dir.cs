@@ -8,11 +8,11 @@ namespace P2PShare.Libs.Models.FileSytem
         public string Owner { get; }
         public List<Fil>? Fils { get; }
         public List<Dir>? Dirs { get; }
-        public bool CanDelete { get; init; } = true;
-        public bool CanRename { get; init; } = true;
-        public bool CanAdd { get; init; } = true;
+        public bool CanDelete { get; }
+        public bool CanRename { get; }
+        public bool CanAdd { get; }
 
-        public Dir(string path, string owner)
+        public Dir(string path, string owner, bool canDelete, bool canRename, bool canAdd)
         {
             DirectoryInfo dirInfo = new(path);
             FileInfo[] files;
@@ -20,6 +20,9 @@ namespace P2PShare.Libs.Models.FileSytem
 
             Name = dirInfo.Name;
             Owner = owner;
+            CanDelete = canDelete;
+            CanRename = canRename;
+            CanAdd = canAdd;
 
             if ((files = dirInfo.GetFiles()).Length > 0)
             {
@@ -37,7 +40,7 @@ namespace P2PShare.Libs.Models.FileSytem
             {
                 Dirs = [];
 
-                Array.ForEach(directories, x => Dirs.Add(new(x.FullName, Owner)));
+                Array.ForEach(directories, x => Dirs.Add(new(x.FullName, Owner, CanDelete, CanRename, CanAdd)));
             }
         }
 

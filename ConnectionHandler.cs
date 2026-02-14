@@ -105,8 +105,8 @@ namespace P2PShare.Libs
 
         protected async Task<bool> SendInviteAsync(FileInfo[] files, bool encrypted)
         {
-            byte[] bufferInvite, bufferInviteLength;
-            string invite = String.Empty;
+            byte[] bufferInvite;
+            var invite = String.Empty;
 
             for (int i = 0; i < files.Length; i++)
             {
@@ -118,18 +118,24 @@ namespace P2PShare.Libs
 
             bufferInvite = Encoding.UTF8.GetBytes(invite.Trim());
             if (encrypted) bufferInvite = _encryptionSymmetrical!.Encrypt(bufferInvite);
-            bufferInviteLength = Encoding.UTF8.GetBytes(bufferInvite.Length.ToString());
 
             // Poslanie dĺžky pozvánky.
-            await _netStream!.WriteAsync(encrypted ? _encryptionSymmetrical?.Encrypt(bufferInviteLength) : bufferInviteLength, CancellationToken);
+            await SendInfoLengthAsync(bufferInvite.Length, encrypted);
 
             // Odozva.
             await YNReceiveAsync(encrypted);
 
             // Poslanie pozvánky.
-            await _netStream.WriteAsync(bufferInvite, CancellationToken);
+            await _netStream!.WriteAsync(bufferInvite, CancellationToken);
 
             return await YNReceiveAsync(encrypted);
+        }
+
+        protected async Task SendInfoLengthAsync(int length, bool encrypted)
+        {
+            var lengthBytes = Encoding.UTF8.GetBytes(length.ToString());
+            
+            await _netStream!.WriteAsync(encrypted ? _encryptionSymmetrical?.Encrypt(lengthBytes) : lengthBytes, CancellationToken);
         }
 
         protected async Task<int> SendPortAsync(bool encrypted)
@@ -281,7 +287,7 @@ namespace P2PShare.Libs
             return Encoding.UTF8.GetString(encrypted ? _encryptionSymmetrical!.Decrypt(buffer) : buffer);
         }
 
-        protected async Task<string[]> ReceiveFilesAsync(Dictionary<string, long> filesAndSizes, string dictionaryPath, bool encrypted)
+        public async Task<string[]> ReceiveFilesAsync(Dictionary<string, long> filesAndSizes, string dictionaryPath, bool encrypted)
         {
             List<string> savedFiles = new();
             FileStream? fileStream = null;
