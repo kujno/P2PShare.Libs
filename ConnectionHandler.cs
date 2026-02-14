@@ -177,7 +177,7 @@ namespace P2PShare.Libs
             return port;
         }
 
-        public async virtual Task SendFilesAsync(FileInfo[] files, bool encrypted)
+        protected async Task SendFilesAsync(FileInfo[] files, bool encrypted)
         {
             for (int i = 0; i < files.Length; i++)
             {
