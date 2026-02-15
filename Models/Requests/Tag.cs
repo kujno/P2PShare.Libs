@@ -7,7 +7,10 @@
         Get,
         Download,
         Upload,
-        Rename,
-        Delete
+        RenameFile,
+        DeleteFile,
+        AddGroup,
+        EditGroup,
+        DeleteGroup
     }
 }
