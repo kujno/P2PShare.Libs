@@ -33,6 +33,8 @@ namespace P2PShare.Libs.Models.FileSytem
                     Name = x.Name,
                     Size = x.Length,
                     Owner = owner,
+                    CanDelete = CanDelete,
+                    CanRename = CanRename
                 }));
             }
 
