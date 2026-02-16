@@ -5,7 +5,7 @@ namespace P2PShare.Libs.Models.FileSytem
     public class AllUserInfo
     {
         public required Dir MyDir { get; init; }
-        public required string[] Users { get; init; }
+        public required User[] Users { get; init; }
 
         public Dir[]? SharedDirs { get; init; }
         public Fil[]? SharedFils { get; init; }
