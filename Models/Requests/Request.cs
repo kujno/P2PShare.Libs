@@ -16,6 +16,8 @@ namespace P2PShare.Libs.Models.Requests
         public Unit Unit { get; init; }
         public bool My { get; init; }
         public bool Encrypted { get; init; }
+        public Group? Group { get; init; }
+        public Group? UpdatedGroup { get; init; }
 
         public static Request Create(string requestJSON) => JsonConvert.DeserializeObject<Request>(requestJSON, SerializationSettings.Settings)!;
 
