@@ -137,7 +137,7 @@ namespace P2PShare.Libs
 
         public async Task<bool> SendRequestYNAsync(string request) => await SendRequestYNAsync(request, true);
 
-        public async Task<bool> SendRequestYNAsync(string request, bool encrypted)
+        protected async Task<bool> SendRequestYNAsync(string request, bool encrypted)
         {
             await SendRequestAsync(request, encrypted);
 
