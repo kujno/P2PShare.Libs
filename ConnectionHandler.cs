@@ -135,6 +135,8 @@ namespace P2PShare.Libs
             await _netStream!.WriteAsync(requestBytes, CancellationToken);
         }
 
+        public async Task<bool> SendRequestYNAsync(string request) => await SendRequestYNAsync(request, true);
+
         public async Task<bool> SendRequestYNAsync(string request, bool encrypted)
         {
             await SendRequestAsync(request, encrypted);
