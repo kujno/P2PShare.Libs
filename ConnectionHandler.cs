@@ -105,7 +105,6 @@ namespace P2PShare.Libs
 
         protected async Task<bool> SendInviteAsync(FileInfo[] files, bool encrypted)
         {
-            byte[] bufferInvite;
             var invite = String.Empty;
 
             for (int i = 0; i < files.Length; i++)
@@ -116,17 +115,27 @@ namespace P2PShare.Libs
                 if (i < files.Length - 1) invite += FileSeparator;
             }
 
-            bufferInvite = Encoding.UTF8.GetBytes(invite.Trim());
-            if (encrypted) bufferInvite = _encryptionSymmetrical!.Encrypt(bufferInvite);
+            return await SendRequestYNAsync(Encoding.UTF8.GetBytes(invite.Trim()), encrypted);
+        }
+
+        public async Task SendRequestAsync(byte[] requestBytes, bool encrypted)
+        {
+            if (encrypted)
+                requestBytes = _encryptionSymmetrical!.Encrypt(requestBytes);
 
             // Poslanie dĺžky pozvánky.
-            await SendInfoLengthAsync(bufferInvite.Length, encrypted);
+            await SendInfoLengthAsync(requestBytes.Length, encrypted);
 
             // Odozva.
             await YNReceiveAsync(encrypted);
 
             // Poslanie pozvánky.
-            await _netStream!.WriteAsync(bufferInvite, CancellationToken);
+            await _netStream!.WriteAsync(requestBytes, CancellationToken);
+        }
+
+        public async Task<bool> SendRequestYNAsync(byte[] requestBytes, bool encrypted)
+        {
+            await SendRequestAsync(requestBytes, encrypted);
 
             return await YNReceiveAsync(encrypted);
         }
@@ -134,7 +143,7 @@ namespace P2PShare.Libs
         protected async Task SendInfoLengthAsync(int length, bool encrypted)
         {
             var lengthBytes = Encoding.UTF8.GetBytes(length.ToString());
-            
+
             await _netStream!.WriteAsync(encrypted ? _encryptionSymmetrical?.Encrypt(lengthBytes) : lengthBytes, CancellationToken);
         }
 
@@ -365,7 +374,7 @@ namespace P2PShare.Libs
 
                 client.Client.Bind(new IPEndPoint(IPLocal!, 0));
 
-                using (var timer = connectingToServer ? Task.Run(async () => await Task.Delay(10000)) : null)
+                using (var timer = connectingToServer ? Task.Run(async () => await Task.Delay(20000)) : null)
                 {
                     do
                     {
@@ -380,7 +389,7 @@ namespace P2PShare.Libs
                             connected = false;
                         }
                     }
-                    while (!connected && (!timer?.IsCompleted ?? false));
+                    while (!connected && ((!timer?.IsCompleted) ?? true));
                 }
             }
             catch (Exception ex)
