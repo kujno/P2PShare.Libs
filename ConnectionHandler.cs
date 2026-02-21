@@ -115,11 +115,13 @@ namespace P2PShare.Libs
                 if (i < files.Length - 1) invite += FileSeparator;
             }
 
-            return await SendRequestYNAsync(Encoding.UTF8.GetBytes(invite.Trim()), encrypted);
+            return await SendRequestYNAsync(invite.Trim(), encrypted);
         }
 
-        public async Task SendRequestAsync(byte[] requestBytes, bool encrypted)
+        public async Task SendRequestAsync(string request, bool encrypted)
         {
+            var requestBytes = Encoding.UTF8.GetBytes(request);
+
             if (encrypted)
                 requestBytes = _encryptionSymmetrical!.Encrypt(requestBytes);
 
@@ -133,9 +135,9 @@ namespace P2PShare.Libs
             await _netStream!.WriteAsync(requestBytes, CancellationToken);
         }
 
-        public async Task<bool> SendRequestYNAsync(byte[] requestBytes, bool encrypted)
+        public async Task<bool> SendRequestYNAsync(string request, bool encrypted)
         {
-            await SendRequestAsync(requestBytes, encrypted);
+            await SendRequestAsync(request, encrypted);
 
             return await YNReceiveAsync(encrypted);
         }
