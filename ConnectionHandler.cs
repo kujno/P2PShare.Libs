@@ -118,7 +118,8 @@ namespace P2PShare.Libs
             return await SendRequestYNAsync(invite.Trim(), encrypted);
         }
 
-        public async Task SendRequestAsync(string request, bool encrypted)
+        public async Task SendInfoAsync(string request) => await SendInfoAsync(request, true);
+        public async Task SendInfoAsync(string request, bool encrypted)
         {
             var requestBytes = Encoding.UTF8.GetBytes(request);
 
@@ -139,7 +140,7 @@ namespace P2PShare.Libs
 
         protected async Task<bool> SendRequestYNAsync(string request, bool encrypted)
         {
-            await SendRequestAsync(request, encrypted);
+            await SendInfoAsync(request, encrypted);
 
             return await YNReceiveAsync(encrypted);
         }
@@ -262,7 +263,7 @@ namespace P2PShare.Libs
 
             try
             {
-                filesSplit = (await ReceiveRequestAsync(encrypted)).Split(FileSeparator);
+                filesSplit = (await ReceiveInfoAsync(encrypted)).Split(FileSeparator);
             }
             catch (Exception ex)
             {
@@ -282,7 +283,8 @@ namespace P2PShare.Libs
             return (T)(object)filesAndSizes;
         }
 
-        public async Task<string> ReceiveRequestAsync(bool encrypted)
+        public async Task<string> ReceiveInfoAsync() => await ReceiveInfoAsync(true);
+        public async Task<string> ReceiveInfoAsync(bool encrypted)
         {
             byte inviteLength;
             var buffer = new byte[BufferSize];
@@ -295,6 +297,7 @@ namespace P2PShare.Libs
             buffer = buffer[0..read];
             if (encrypted) buffer = _encryptionSymmetrical!.Decrypt(buffer);
             if (!byte.TryParse(Encoding.UTF8.GetString(buffer), out inviteLength)) throw new FormatException();
+            // prijatie ziadosti
             await _netStream!.ReadExactlyAsync(buffer = new byte[inviteLength], CancellationToken);
 
             return Encoding.UTF8.GetString(encrypted ? _encryptionSymmetrical!.Decrypt(buffer) : buffer);
