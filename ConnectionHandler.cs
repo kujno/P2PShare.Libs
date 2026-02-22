@@ -396,7 +396,7 @@ namespace P2PShare.Libs
                             connected = false;
                         }
                     }
-                    while (!connected && ((!timer?.IsCompleted) ?? true));
+                    while (!connected && ((!timer?.IsCompleted) ?? true) && !CancellationToken.IsCancellationRequested);
                 }
             }
             catch (Exception ex)
