@@ -11,6 +11,7 @@
         DeleteFile,
         AddGroup,
         EditGroup,
-        DeleteGroup
+        DeleteGroup,
+        Share
     }
 }
