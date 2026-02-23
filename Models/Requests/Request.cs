@@ -16,6 +16,11 @@ namespace P2PShare.Libs.Models.Requests
         public Unit Unit { get; init; }
         public bool My { get; init; }
         public bool Encrypted { get; init; }
+        public bool CanAdd { get; init; }
+        public bool CanDelete { get; init; }
+        public bool CanRename { get; init; }
+        public Group[]? Groups { get; init; }
+        public User[]? Users { get; init; }
         public Group? Group { get; init; }
         public Group? UpdatedGroup { get; init; }
 
