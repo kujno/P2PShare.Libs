@@ -381,22 +381,27 @@ namespace P2PShare.Libs
 
                 client.Client.Bind(new IPEndPoint(IPLocal!, 0));
 
-                using (var timer = connectingToServer ? Task.Run(async () => await Task.Delay(20000)) : null)
+                using (var cts = CancellationTokenSource.CreateLinkedTokenSource(CancellationToken))
                 {
-                    do
+                    using (var timer = connectingToServer ? Task.Run(async () => await Task.Delay(20000), CancellationToken) : null)
                     {
-                        try
+                        do
                         {
-                            await client.ConnectAsync(_ipRemote!, port, CancellationToken);
+                            try
+                            {
+                                await client.ConnectAsync(_ipRemote!, port, CancellationToken);
 
-                            connected = client.Connected;
+                                connected = client.Connected;
+                            }
+                            catch
+                            {
+                                connected = false;
+                            }
                         }
-                        catch
-                        {
-                            connected = false;
-                        }
+                        while (!connected && ((!timer?.IsCompleted) ?? true) && !CancellationToken.IsCancellationRequested);
                     }
-                    while (!connected && ((!timer?.IsCompleted) ?? true) && !CancellationToken.IsCancellationRequested);
+
+                    cts.Cancel();
                 }
             }
             catch (Exception ex)
