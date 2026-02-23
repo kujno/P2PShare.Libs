@@ -13,6 +13,7 @@ namespace P2PShare.Libs
         public static event EventHandler<FilePartTransportedEventArgs>? FilePartTransported;
 
         public static string InviteErrorMessage { get; } = "Receiving invite failed.";
+        public static string CouldNotOpenFileErrorMessage { get; } = "Couldn't create file in the desired folder.";
         public static char FileSeparator { get; } = '|';
         public static char InviteSeparator { get; } = ':';
         public static int BufferSize { get; } = 8192;
@@ -329,7 +330,7 @@ namespace P2PShare.Libs
                     }
                     catch (Exception ex)
                     {
-                        throw new CouldNotOpenFileException($"Couldn't create file in the desired folder.", ex);
+                        throw new CouldNotOpenFileException(CouldNotOpenFileErrorMessage, ex);
                     }
 
                     while (totalBytesRead < fileAndSize.Value)
@@ -348,10 +349,6 @@ namespace P2PShare.Libs
 
                     savedFiles.Add(file);
                 }
-            }
-            catch (Exception ex)
-            {
-                throw ex is OperationCanceledException || ex is CouldNotOpenFileException ? ex : new Exception("Receiving file(s) failed.", ex);
             }
             finally
             {
