@@ -33,6 +33,7 @@ namespace P2PShare.Libs
         private TcpClient? _client;
         private DecryptorAsymmetrical? _decryptorAsymmetrical;
         private EncryptorAsymmetrical? _encryptorAsymmetrical;
+        private Task? _gettingRidOfTask;
 
         protected TcpClient Client
         {
@@ -375,31 +376,32 @@ namespace P2PShare.Libs
             try
             {
                 bool connected;
+                Task? timer;
 
                 client.Client.Bind(new IPEndPoint(IPLocal!, 0));
 
-                using (var cts = CancellationTokenSource.CreateLinkedTokenSource(CancellationToken))
+                timer = connectingToServer ? Task.Run(async () => await Task.Delay(20000)) : null;
+
+                do
                 {
-                    using (var timer = connectingToServer ? Task.Run(async () => await Task.Delay(20000), CancellationToken) : null)
+                    try
                     {
-                        do
-                        {
-                            try
-                            {
-                                await client.ConnectAsync(_ipRemote!, port, CancellationToken);
+                        await client.ConnectAsync(_ipRemote!, port, CancellationToken);
 
-                                connected = client.Connected;
-                            }
-                            catch
-                            {
-                                connected = false;
-                            }
-                        }
-                        while (!connected && ((!timer?.IsCompleted) ?? true) && !CancellationToken.IsCancellationRequested);
+                        connected = client.Connected;
                     }
-
-                    cts.Cancel();
+                    catch
+                    {
+                        connected = false;
+                    }
                 }
+                while (!connected && ((!timer?.IsCompleted) ?? true) && !CancellationToken.IsCancellationRequested);
+
+                if (timer is not null)
+                    _gettingRidOfTask = GetRidOfTask(timer);
+
+                if (!connected)
+                    throw new TimeoutException();
             }
             catch (Exception ex)
             {
@@ -408,6 +410,13 @@ namespace P2PShare.Libs
             }
 
             return client;
+        }
+
+        private async Task GetRidOfTask(Task task)
+        {
+            await task;
+
+            task.Dispose();
         }
     }
 }
