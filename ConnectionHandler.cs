@@ -288,7 +288,7 @@ namespace P2PShare.Libs
         public async Task<string> ReceiveInfoAsync() => await ReceiveInfoAsync(true);
         public async Task<string> ReceiveInfoAsync(bool encrypted)
         {
-            byte inviteLength;
+            int inviteLength;
             var buffer = new byte[BufferSize];
             // Prijatie dĺžky žiadosti.
             var read = await _netStream!.ReadAsync(buffer, CancellationToken);
@@ -298,7 +298,7 @@ namespace P2PShare.Libs
 
             buffer = buffer[0..read];
             if (encrypted) buffer = _encryptionSymmetrical!.Decrypt(buffer);
-            if (!byte.TryParse(Encoding.UTF8.GetString(buffer), out inviteLength)) throw new FormatException();
+            if (!int.TryParse(Encoding.UTF8.GetString(buffer), out inviteLength)) throw new FormatException();
             // prijatie ziadosti
             await _netStream!.ReadExactlyAsync(buffer = new byte[inviteLength], CancellationToken);
 
