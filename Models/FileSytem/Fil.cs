@@ -7,5 +7,6 @@
         public required long Size { get; init; }
         public bool CanDelete { get; init; }
         public bool CanRename { get; init; }
+        public Share[]? Shares { get; set; }
     }
 }
