@@ -7,6 +7,7 @@
         Get,
         Download,
         Upload,
+        AddFolder,
         RenameFile,
         DeleteFile,
         AddGroup,
