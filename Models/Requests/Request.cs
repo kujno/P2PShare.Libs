@@ -10,8 +10,6 @@ namespace P2PShare.Libs.Models.Requests
         public string? Surename { get; init; }
         public string? Username { get; init; }
         public string? Password { get; init; }
-        public string? FolderName { get; init; }
-        public string? HigherFolderName { get; init; }
         public string? FileName { get; init; }
         public string? NewFileName { get; init; }
         public long FileSize { get; init; }
