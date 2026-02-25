@@ -30,7 +30,7 @@ namespace P2PShare.Libs
 
         private static readonly byte[] _y = Encoding.UTF8.GetBytes("y"), _n = Encoding.UTF8.GetBytes("n");
 
-        private TcpClient? _client;
+        protected TcpClient? _client;
         private DecryptorAsymmetrical? _decryptorAsymmetrical;
         private EncryptorAsymmetrical? _encryptorAsymmetrical;
         private Task? _gettingRidOfTask;
