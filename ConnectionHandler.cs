@@ -305,7 +305,7 @@ namespace P2PShare.Libs
             return Encoding.UTF8.GetString(encrypted ? _encryptionSymmetrical!.Decrypt(buffer) : buffer);
         }
 
-        public async Task<string[]> ReceiveFilesAsync(Dictionary<string, long> filesAndSizes, string dictionaryPath, bool encrypted)
+        public async Task<string[]> ReceiveFilesAsync(Dictionary<string, long> filesAndSizes, string directoryPath, bool encrypted)
         {
             List<string> savedFiles = new();
             FileStream? fileStream = null;
@@ -317,12 +317,12 @@ namespace P2PShare.Libs
                     var fileAndSize = filesAndSizes.ElementAt(i - 1);
                     var dotIndex = fileAndSize.Key.LastIndexOf('.');
                     long totalBytesRead = 0;
-                    string fileName = fileAndSize.Key.Substring(0, dotIndex), fileExt = fileAndSize.Key.Substring(dotIndex + 1), file = $"{fileName}.{fileExt}", path = $"{dictionaryPath}\\{file}";
+                    string fileName = fileAndSize.Key.Substring(0, dotIndex), fileExt = fileAndSize.Key.Substring(dotIndex + 1), file = $"{fileName}.{fileExt}", path = $"{directoryPath}\\{file}";
 
                     for (int j = 0; File.Exists(path); j++)
                     {
                         file = $"{fileName} ({j}).{fileExt}";
-                        path = $"{dictionaryPath}\\{file}";
+                        path = $"{directoryPath}\\{file}";
                     }
 
                     try
