@@ -105,7 +105,7 @@ namespace P2PShare.Libs
             _encryptionSymmetrical = new(_decryptorAsymmetrical!.Decrypt(buffer));
         }
 
-        protected async Task<bool> SendInviteAsync(FileInfo[] files, bool encrypted)
+        public async Task<bool> SendInviteAsync(FileInfo[] files, bool encrypted)
         {
             var invite = String.Empty;
 
@@ -255,7 +255,7 @@ namespace P2PShare.Libs
             return (encrypted ? _encryptionSymmetrical?.Decrypt(buffer) : buffer).SequenceEqual(_y);
         }
 
-        protected async Task<T> ReceiveInviteAsync<T>(bool encrypted)
+        public async Task<T> ReceiveInviteAsync<T>(bool encrypted)
         {
             if (typeof(T) != typeof(string[]) && typeof(T) != typeof(Dictionary<string, long>)) throw new NotImplementedException();
 
