@@ -23,6 +23,7 @@ namespace P2PShare.Libs.Models.Requests
         public User[]? Users { get; init; }
         public Group? Group { get; init; }
         public Group? UpdatedGroup { get; init; }
+        public Share[]? Shares { get; init; }
 
         public static Request Create(string requestJSON) => JsonConvert.DeserializeObject<Request>(requestJSON, SerializationSettings.Settings)!;
 

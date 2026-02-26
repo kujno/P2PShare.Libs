@@ -13,7 +13,6 @@
         AddGroup,
         EditGroup,
         DeleteGroup,
-        RemoveShare,
-        AddShare
+        ChangeSharing
     }
 }
