@@ -7,6 +7,6 @@
         public required Unit Type { get; init; }
         public required bool CanDelete { get; init; }
         public required bool CanRename { get; init; }
-        public required bool CanAdd { get; init; }
+        public bool CanAdd { get; init; }
     }
 }
