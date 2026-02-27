@@ -10,7 +10,7 @@
         AddFolder,
         RenameFile,
         DeleteFile,
-        AddGroup,
+        CreateGroup,
         EditGroup,
         DeleteGroup,
         ChangeSharing
