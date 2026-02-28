@@ -8,12 +8,13 @@ namespace P2PShare.Libs.Models.FileSytem
         public string Owner { get; }
         public List<Fil>? Fils { get; }
         public List<Dir>? Dirs { get; }
+        public int? ID { get; }
         public bool CanDelete { get; set; }
         public bool CanRename { get; set; }
         public bool CanAdd { get; set; }
         public Share[]? Shares { get; set; }
 
-        public Dir(string path, string owner, bool canDelete, bool canRename, bool canAdd)
+        public Dir(string path, string owner, bool canDelete, bool canRename, bool canAdd, int? iD = null)
         {
             DirectoryInfo dirInfo = new(path);
             FileInfo[] files;
@@ -44,12 +45,14 @@ namespace P2PShare.Libs.Models.FileSytem
             {
                 Dirs = [];
 
-                Array.ForEach(directories, x => Dirs.Add(new(x.FullName, Owner, CanDelete, CanRename, CanAdd)));
+                Array.ForEach(directories, x => Dirs.Add(new(x.FullName, Owner, CanDelete, CanRename, CanAdd, iD)));
             }
+
+            ID = iD;
         }
 
         [JsonConstructor]
-        public Dir(string name, string owner, bool canDelete, bool canRename, bool canAdd, Fil[]? fils = null, Dir[]? dirs = null, Share[]? shares = null)
+        public Dir(string name, string owner, bool canDelete, bool canRename, bool canAdd, Fil[]? fils = null, Dir[]? dirs = null, Share[]? shares = null, int? id = null)
         {
             Name = name;
             Owner = owner;
@@ -59,6 +62,7 @@ namespace P2PShare.Libs.Models.FileSytem
             CanRename = canRename;
             CanAdd = canAdd;
             Shares = shares;
+            ID = id;
         }
     }
 }

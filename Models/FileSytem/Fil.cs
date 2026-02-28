@@ -5,6 +5,7 @@
         public required string Name { get; init; }
         public required string Owner { get; init; }
         public required long Size { get; init; }
+        public int ID { get; init; }
         public bool CanDelete { get; set; }
         public bool CanRename { get; set; }
         public Share[]? Shares { get; set; }
