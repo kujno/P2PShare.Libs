@@ -390,6 +390,10 @@ namespace P2PShare.Libs
 
                         connected = client.Connected;
                     }
+                    catch (OperationCanceledException)
+                    {
+                        throw;
+                    }
                     catch
                     {
                         connected = false;
@@ -406,6 +410,10 @@ namespace P2PShare.Libs
             catch (Exception ex)
             {
                 client.Dispose();
+
+                if (ex is OperationCanceledException)
+                    throw;
+
                 throw new ConnectionFailedException("Could not connect.", ex);
             }
 
