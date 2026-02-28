@@ -1,6 +1,6 @@
 ﻿using System.Security.Cryptography;
 
-namespace P2PShare.Libs
+namespace P2PShare.Libs.Encryption.Asymmetrical
 {
     public class EncryptorAsymmetrical : EncryptionAsymmetrical
     {

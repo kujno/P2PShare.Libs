@@ -1,23 +1,13 @@
 ﻿using System.Security.Cryptography;
 
-namespace P2PShare.Libs
+namespace P2PShare.Libs.Encryption.Asymmetrical
 {
     public abstract class EncryptionAsymmetrical
     {
         protected static int _dwKeySize = 2048;
-        protected RSAParameters _publicKey;
-        public RSAParameters PublicKey
-        {
-            get
-            {
-                return _publicKey;
-            }
-        }
+        protected RSAParameters _publicKey = new();
 
-        protected EncryptionAsymmetrical()
-        {
-            _publicKey = new();
-        }
+        public RSAParameters PublicKey { get => _publicKey; }
 
         public static int GetPublicKeyLength(out int modulusLength, out int exponentLength)
         {
@@ -46,9 +36,9 @@ namespace P2PShare.Libs
 
             using (RSACryptoServiceProvider rsa = new RSACryptoServiceProvider(_dwKeySize))
             {
-                // public key
+                // verjeny kluc
                 parameters[0] = rsa.ExportParameters(false);
-                //private key
+                // sukromny kluc
                 parameters[1] = rsa.ExportParameters(true);
             }
 
@@ -57,7 +47,9 @@ namespace P2PShare.Libs
 
         public static bool IsPublicKeyNull(RSAParameters key)
         {
-            return key.Modulus is null || key.Exponent is null ? true : false;
+            return key.Modulus is null || key.Exponent is null
+                ? true
+                : false;
         }
     }
 }

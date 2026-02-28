@@ -2,7 +2,7 @@
 {
     public enum SendReceive
     {
-        Receive,
-        Send
+        Send,
+        Receive
     }
 }

@@ -4,7 +4,7 @@ using System.Net.Sockets;
 
 namespace P2PShare.Libs
 {
-    public class InterfaceHandling
+    public static class InterfaceHandling
     {
         public static NetworkInterface[] GetUpInterfaces()
         {

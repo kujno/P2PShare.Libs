@@ -1,4 +1,4 @@
-﻿namespace P2PShare.Libs.Models
+﻿namespace P2PShare.Libs.Models.Exceptions
 {
     public class FileTransportDeniedException : Exception
     {
