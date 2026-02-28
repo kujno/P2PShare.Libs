@@ -6,7 +6,7 @@ namespace P2PShare.Libs.Models.Requests
     public class Request
     {
         public required Tag Tag { get; init; }
-        public int ID { get; init; }
+        public int? ID { get; init; }
         public string? Name { get; init; }
         public string? Surename { get; init; }
         public string? Username { get; init; }
