@@ -37,7 +37,8 @@ namespace P2PShare.Libs.Models.FileSytem
                     Owner = owner,
                     CanDelete = CanDelete,
                     CanRename = CanRename,
-                    Shares = Shares
+                    Shares = Shares,
+                    ID = iD
                 }));
             }
 
