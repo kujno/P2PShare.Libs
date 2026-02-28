@@ -4,13 +4,13 @@ namespace P2PShare.Libs.Models.FileSytem
 {
     public class Dir
     {
-        public string Name { get; }
+        public string Name { get; set; }
         public string Owner { get; }
         public List<Fil>? Fils { get; }
         public List<Dir>? Dirs { get; }
-        public bool CanDelete { get; }
-        public bool CanRename { get; }
-        public bool CanAdd { get; }
+        public bool CanDelete { get; set; }
+        public bool CanRename { get; set; }
+        public bool CanAdd { get; set; }
         public Share[]? Shares { get; set; }
 
         public Dir(string path, string owner, bool canDelete, bool canRename, bool canAdd)
